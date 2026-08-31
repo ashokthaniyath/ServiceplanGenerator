@@ -85,6 +85,7 @@ export interface AppTabShowcase {
   description: string;
   accentColor: string;
   mockupType: 'sound' | 'touch' | 'system';
+  imageUrl?: string;
 }
 
 export interface WeightMatrixRow {

@@ -9,17 +9,20 @@ import {
   AlignmentType,
   HeadingLevel,
   BorderStyle,
-  ShadingType,
   Packer,
-  Header,
   PageOrientation,
+  TableLayoutType,
+  ImageRun,
 } from 'docx';
 import { saveAs } from 'file-saver';
 import { ServicePlanDocument, ServicePlanBlock, AnnexureItem } from '../types';
 
+// Total usable table width inside A4 with 1" margins ≈ 9026 dxa. Use 9000 for safety.
+const TABLE_TOTAL_WIDTH_DXA = 9000;
+
 const BORDER_STYLE = {
   style: BorderStyle.SINGLE,
-  size: 1,
+  size: 4, // 0.5pt (size is in eighths of a point) — visible in Word & Google Docs
   color: '000000',
 };
 
@@ -32,12 +35,62 @@ const TABLE_BORDERS = {
   insideVertical: BORDER_STYLE,
 };
 
+// Per-cell borders — Google Docs ignores table-level inside borders, so every cell
+// must declare its own full border set for the grid to render everywhere.
+const CELL_BORDERS = {
+  top: BORDER_STYLE,
+  bottom: BORDER_STYLE,
+  left: BORDER_STYLE,
+  right: BORDER_STYLE,
+};
+
+/** Convert a percentage (0-100) into absolute DXA width of the printable area. */
+function pctToDxa(pct: number): number {
+  return Math.floor(TABLE_TOTAL_WIDTH_DXA * (pct / 100));
+}
+
+/**
+ * Build a table with an explicit column grid (tblGrid) and FIXED layout.
+ * Google Docs requires tblGrid + fixed layout to render column widths correctly —
+ * without them, columns collapse to minimal width and text wraps one character per line.
+ */
+function buildTable(colPercents: number[], rows: TableRow[]): Table {
+  return new Table({
+    width: { size: TABLE_TOTAL_WIDTH_DXA, type: WidthType.DXA },
+    columnWidths: colPercents.map(pctToDxa),
+    layout: TableLayoutType.FIXED,
+    borders: TABLE_BORDERS,
+    rows,
+  });
+}
+
+/** Split text on newlines into separate paragraphs so multi-line cell content renders cleanly. */
+function cellParagraphs(text: string, opts: { bold?: boolean; size?: number } = {}): Paragraph[] {
+  const lines = (text || '-').split('\n');
+  return lines.map(
+    (line, idx) =>
+      new Paragraph({
+        alignment: AlignmentType.LEFT,
+        spacing: idx < lines.length - 1 ? { after: 40 } : undefined,
+        children: [
+          new TextRun({
+            text: line === '' ? ' ' : line,
+            bold: opts.bold ?? false,
+            color: '000000',
+            size: opts.size ?? 19, // 9.5pt
+            font: 'Calibri',
+          }),
+        ],
+      })
+  );
+}
+
 function createHeaderCell(text: string, widthPercent?: number): TableCell {
   return new TableCell({
-    width: widthPercent ? { size: widthPercent, type: WidthType.PERCENTAGE } : undefined,
+    width: widthPercent ? { size: pctToDxa(widthPercent), type: WidthType.DXA } : undefined,
+    borders: CELL_BORDERS,
     shading: {
       fill: 'FFFFFF',
-      type: ShadingType.CLEAR,
     },
     margins: {
       top: 100,
@@ -64,11 +117,11 @@ function createHeaderCell(text: string, widthPercent?: number): TableCell {
 
 function createBodyCell(text: string, isBold = false, widthPercent?: number, shadingFill?: string): TableCell {
   return new TableCell({
-    width: widthPercent ? { size: widthPercent, type: WidthType.PERCENTAGE } : undefined,
+    width: widthPercent ? { size: pctToDxa(widthPercent), type: WidthType.DXA } : undefined,
+    borders: CELL_BORDERS,
     shading: shadingFill
       ? {
           fill: shadingFill,
-          type: ShadingType.CLEAR,
         }
       : undefined,
     margins: {
@@ -77,24 +130,83 @@ function createBodyCell(text: string, isBold = false, widthPercent?: number, sha
       left: 140,
       right: 140,
     },
-    children: [
-      new Paragraph({
-        alignment: AlignmentType.LEFT,
-        children: [
-          new TextRun({
-            text: text || '-',
-            bold: isBold,
-            color: '000000',
-            size: 19, // 9.5pt
-            font: 'Calibri',
-          }),
-        ],
-      }),
-    ],
+    children: cellParagraphs(text, { bold: isBold }),
   });
 }
 
-function appendCustomContentElements(children: (Paragraph | Table)[], block: ServicePlanBlock) {
+// Decode a base64 data URL into raw bytes for embedding in the DOCX.
+// Render ANY image source (base64 data URL of png/jpg/gif/bmp/webp/svg, or a same-origin URL)
+// into PNG bytes via a canvas. This guarantees a valid, Word-embeddable image regardless of the
+// original upload format, and also yields the natural pixel dimensions for aspect-ratio scaling.
+function imageToPngBytes(src: string): Promise<{ bytes: Uint8Array; width: number; height: number } | null> {
+  return new Promise(resolve => {
+    const img = new Image();
+    img.crossOrigin = 'anonymous';
+    img.onload = () => {
+      try {
+        const w = img.naturalWidth || 480;
+        const h = img.naturalHeight || 300;
+        const canvas = document.createElement('canvas');
+        canvas.width = w;
+        canvas.height = h;
+        const ctx = canvas.getContext('2d');
+        if (!ctx) return resolve(null);
+        ctx.drawImage(img, 0, 0, w, h);
+        const pngUrl = canvas.toDataURL('image/png');
+        const b64 = pngUrl.split(',')[1] || '';
+        const binary = atob(b64);
+        const bytes = new Uint8Array(binary.length);
+        for (let i = 0; i < binary.length; i++) bytes[i] = binary.charCodeAt(i);
+        resolve({ bytes, width: w, height: h });
+      } catch {
+        resolve(null);
+      }
+    };
+    img.onerror = () => resolve(null);
+    img.src = src;
+  });
+}
+
+// Build a centered image paragraph (with optional caption) from any image source.
+async function buildImageParagraphs(src: string, caption?: string, maxWidth = 480): Promise<Paragraph[]> {
+  const decoded = await imageToPngBytes(src);
+  if (!decoded) return [];
+  const { bytes, width: natW, height: natH } = decoded;
+  const MAX_WIDTH = maxWidth; // px
+  const scale = natW > MAX_WIDTH ? MAX_WIDTH / natW : 1;
+  const width = Math.round(natW * scale);
+  const height = Math.round(natH * scale);
+
+  const paras: Paragraph[] = [
+    new Paragraph({
+      alignment: AlignmentType.CENTER,
+      spacing: { before: 120, after: caption ? 40 : 140 },
+      children: [
+        new ImageRun({
+          type: 'png',
+          data: bytes,
+          transformation: { width, height },
+        }),
+      ],
+    }),
+  ];
+
+  if (caption) {
+    paras.push(
+      new Paragraph({
+        alignment: AlignmentType.CENTER,
+        spacing: { after: 140 },
+        children: [
+          new TextRun({ text: caption, italics: true, size: 18, color: '64748B', font: 'Calibri' }),
+        ],
+      })
+    );
+  }
+
+  return paras;
+}
+
+async function appendCustomContentElements(children: (Paragraph | Table)[], block: ServicePlanBlock) {
   if (!block?.content?.contentElements || block.content.contentElements.length === 0) return;
 
   for (const el of block.content.contentElements) {
@@ -205,12 +317,13 @@ function appendCustomContentElements(children: (Paragraph | Table)[], block: Ser
       }
 
       children.push(
-        new Table({
-          width: { size: 100, type: WidthType.PERCENTAGE },
-          borders: TABLE_BORDERS,
-          rows: tableRows,
-        })
+        buildTable(cols.map(() => colWidthPct), tableRows)
       );
+    } else if (el.type === 'image') {
+      if (el.imageUrl) {
+        const imgParas = await buildImageParagraphs(el.imageUrl, el.imageCaption || el.text);
+        imgParas.forEach(p => children.push(p));
+      }
     }
   }
 }
@@ -327,13 +440,7 @@ export async function exportDocumentToDocx(doc: ServicePlanDocument): Promise<vo
         ),
       ];
 
-      docChildren.push(
-        new Table({
-          width: { size: 100, type: WidthType.PERCENTAGE },
-          borders: TABLE_BORDERS,
-          rows,
-        })
-      );
+      docChildren.push(buildTable([35, 65], rows));
       docChildren.push(new Paragraph({ spacing: { after: 160 }, children: [] }));
     }
   }
@@ -390,13 +497,7 @@ export async function exportDocumentToDocx(doc: ServicePlanDocument): Promise<vo
         ),
       ];
 
-      docChildren.push(
-        new Table({
-          width: { size: 100, type: WidthType.PERCENTAGE },
-          borders: TABLE_BORDERS,
-          rows,
-        })
-      );
+      docChildren.push(buildTable([45, 55], rows));
 
       docChildren.push(
         new Paragraph({
@@ -443,13 +544,7 @@ export async function exportDocumentToDocx(doc: ServicePlanDocument): Promise<vo
         })
       );
 
-      docChildren.push(
-        new Table({
-          width: { size: 100, type: WidthType.PERCENTAGE },
-          borders: TABLE_BORDERS,
-          rows,
-        })
-      );
+      docChildren.push(buildTable([100], rows));
       docChildren.push(new Paragraph({ spacing: { after: 140 }, children: [] }));
     }
   }
@@ -471,14 +566,7 @@ export async function exportDocumentToDocx(doc: ServicePlanDocument): Promise<vo
       })
     );
 
-    const variantsList = [
-      'Raven Black',
-      'Swedish White',
-      'Royal Blue',
-      'Smart Raven Black',
-      'Smart Swedish White',
-      'Smart Royal Blue',
-    ];
+    const variantsList = (bVariants.content.colourVariants || []).map(cv => cv.name);
 
     const rows = [
       new TableRow({
@@ -490,19 +578,13 @@ export async function exportDocumentToDocx(doc: ServicePlanDocument): Promise<vo
       }),
       new TableRow({
         children: [
-          createBodyCell('Airdopes Prime 800D', true, 35),
+          createBodyCell(doc.productName, true, 35),
           createBodyCell(variantsList.join('\n'), false, 65),
         ],
       }),
     ];
 
-    docChildren.push(
-      new Table({
-        width: { size: 100, type: WidthType.PERCENTAGE },
-        borders: TABLE_BORDERS,
-        rows,
-      })
-    );
+    docChildren.push(buildTable([35, 65], rows));
     docChildren.push(new Paragraph({ spacing: { after: 140 }, children: [] }));
   }
 
@@ -542,13 +624,7 @@ export async function exportDocumentToDocx(doc: ServicePlanDocument): Promise<vo
         ),
       ];
 
-      docChildren.push(
-        new Table({
-          width: { size: 100, type: WidthType.PERCENTAGE },
-          borders: TABLE_BORDERS,
-          rows,
-        })
-      );
+      docChildren.push(buildTable([35, 65], rows));
       docChildren.push(new Paragraph({ spacing: { after: 140 }, children: [] }));
     }
   }
@@ -601,13 +677,7 @@ export async function exportDocumentToDocx(doc: ServicePlanDocument): Promise<vo
         ),
       ];
 
-      docChildren.push(
-        new Table({
-          width: { size: 100, type: WidthType.PERCENTAGE },
-          borders: TABLE_BORDERS,
-          rows,
-        })
-      );
+      docChildren.push(buildTable([34, 33, 33], rows));
       docChildren.push(new Paragraph({ spacing: { after: 100 }, children: [] }));
     }
 
@@ -640,13 +710,7 @@ export async function exportDocumentToDocx(doc: ServicePlanDocument): Promise<vo
         ),
       ];
 
-      docChildren.push(
-        new Table({
-          width: { size: 100, type: WidthType.PERCENTAGE },
-          borders: TABLE_BORDERS,
-          rows,
-        })
-      );
+      docChildren.push(buildTable([35, 65], rows));
       docChildren.push(new Paragraph({ spacing: { after: 100 }, children: [] }));
     }
 
@@ -672,13 +736,7 @@ export async function exportDocumentToDocx(doc: ServicePlanDocument): Promise<vo
         ),
       ];
 
-      docChildren.push(
-        new Table({
-          width: { size: 100, type: WidthType.PERCENTAGE },
-          borders: TABLE_BORDERS,
-          rows,
-        })
-      );
+      docChildren.push(buildTable([35, 65], rows));
       docChildren.push(new Paragraph({ spacing: { after: 140 }, children: [] }));
     }
   }
@@ -719,13 +777,7 @@ export async function exportDocumentToDocx(doc: ServicePlanDocument): Promise<vo
         ),
       ];
 
-      docChildren.push(
-        new Table({
-          width: { size: 100, type: WidthType.PERCENTAGE },
-          borders: TABLE_BORDERS,
-          rows,
-        })
-      );
+      docChildren.push(buildTable([35, 65], rows));
       docChildren.push(new Paragraph({ spacing: { after: 140 }, children: [] }));
     }
   }
@@ -749,17 +801,9 @@ export async function exportDocumentToDocx(doc: ServicePlanDocument): Promise<vo
 
     const wmRowsData = bWeight.content.weightMatrixRows && bWeight.content.weightMatrixRows.length > 0
       ? bWeight.content.weightMatrixRows
-      : [
-          {
-            id: 'wm-1',
-            product: 'boAt Airdopes Prime 800D',
-            length: '24.9 mm',
-            breadth: '20.77 mm',
-            height: '32.2 mm',
-            earbudsWeight: '4 g per earbud',
-            caseWeight: '36 g',
-          },
-        ];
+      : bWeight.content.weightMatrix
+      ? [{ id: 'wm-1', ...bWeight.content.weightMatrix }]
+      : [];
 
     const rows = [
       new TableRow({
@@ -787,13 +831,7 @@ export async function exportDocumentToDocx(doc: ServicePlanDocument): Promise<vo
       ),
     ];
 
-    docChildren.push(
-      new Table({
-        width: { size: 100, type: WidthType.PERCENTAGE },
-        borders: TABLE_BORDERS,
-        rows,
-      })
-    );
+    docChildren.push(buildTable([28, 14, 14, 14, 16, 14], rows));
     docChildren.push(new Paragraph({ spacing: { after: 160 }, children: [] }));
   }
 
@@ -833,25 +871,62 @@ export async function exportDocumentToDocx(doc: ServicePlanDocument): Promise<vo
     // App tab columns follow the block content (Non-SDK has Sound + System only)
     const appTabs = (bHearables.content.hearablesAppTabs && bHearables.content.hearablesAppTabs.length > 0)
       ? bHearables.content.hearablesAppTabs
-      : [{ id: 't1', tabName: 'App - Sound Tab', description: '' }, { id: 't2', tabName: 'App - System Tab', description: '' }];
+      : [{ id: 't1', tabName: 'App - Sound Tab', description: '', imageUrl: undefined }, { id: 't2', tabName: 'App - System Tab', description: '', imageUrl: undefined }];
     const tabWidth = Math.floor(100 / appTabs.length);
+    // Width available for a tab picture inside its column (dxa → px, minus cell margins)
+    const tabImgMaxPx = Math.max(120, Math.floor(pctToDxa(tabWidth) / 15) - 32);
+
+    // Build each tab's body cell: embed the uploaded picture if present, otherwise the app
+    // mockup screenshot (same image shown in the Full Document view), else a text placeholder.
+    const tabBodyCells: TableCell[] = [];
+    for (const tab of appTabs) {
+      const imgUrl = (tab as { imageUrl?: string }).imageUrl;
+      const mockupType = (tab as { mockupType?: string }).mockupType;
+      const description = (tab as { description?: string }).description;
+      let paras: Paragraph[] = [];
+      // 1) A user-uploaded picture always wins.
+      if (imgUrl) {
+        paras = await buildImageParagraphs(imgUrl, undefined, tabImgMaxPx);
+      }
+      // 2) Otherwise use the built-in app mockup screenshot for this tab (matches the preview).
+      if (paras.length === 0 && mockupType) {
+        paras = await buildImageParagraphs(`/images/app-${mockupType}-tab.png`, undefined, tabImgMaxPx);
+      }
+      // 3) Final fallback: descriptive text.
+      if (paras.length === 0) {
+        paras = [
+          new Paragraph({
+            alignment: AlignmentType.CENTER,
+            children: [
+              new TextRun({
+                text: `[${tab.tabName} Screen${description ? ` - ${description}` : ''}]`,
+                size: 19,
+                font: 'Calibri',
+                color: '000000',
+              }),
+            ],
+          }),
+        ];
+      }
+      tabBodyCells.push(
+        new TableCell({
+          width: { size: pctToDxa(tabWidth), type: WidthType.DXA },
+          borders: CELL_BORDERS,
+          margins: { top: 90, bottom: 90, left: 140, right: 140 },
+          children: paras,
+        })
+      );
+    }
+
     const tabHeaders = [
       new TableRow({
         tableHeader: true,
         children: appTabs.map(tab => createHeaderCell(tab.tabName, tabWidth)),
       }),
-      new TableRow({
-        children: appTabs.map(tab => createBodyCell(`[${tab.tabName} Screen${tab.description ? ` - ${tab.description}` : ''}]`, false, tabWidth)),
-      }),
+      new TableRow({ children: tabBodyCells }),
     ];
 
-    docChildren.push(
-      new Table({
-        width: { size: 100, type: WidthType.PERCENTAGE },
-        borders: TABLE_BORDERS,
-        rows: tabHeaders,
-      })
-    );
+    docChildren.push(buildTable(appTabs.map(() => tabWidth), tabHeaders));
     docChildren.push(new Paragraph({ spacing: { after: 120 }, children: [] }));
 
     if (bHearables.content.hearablesGuideSteps && bHearables.content.hearablesGuideSteps.length > 0) {
@@ -873,13 +948,7 @@ export async function exportDocumentToDocx(doc: ServicePlanDocument): Promise<vo
         ),
       ];
 
-      docChildren.push(
-        new Table({
-          width: { size: 100, type: WidthType.PERCENTAGE },
-          borders: TABLE_BORDERS,
-          rows: guideRows,
-        })
-      );
+      docChildren.push(buildTable([35, 65], guideRows));
       docChildren.push(new Paragraph({ spacing: { after: 160 }, children: [] }));
     }
   }
@@ -913,6 +982,10 @@ export async function exportDocumentToDocx(doc: ServicePlanDocument): Promise<vo
       })
     );
 
+    const serviceChannelSource = (bDiag.content.serviceChannels && bDiag.content.serviceChannels.length > 0)
+      ? bDiag.content.serviceChannels
+      : [{ id: 'sc-def', channelName: doc.productName, details: 'Door to Door Replacement (D2D)\nMulti-brand Service Centre (MSC)' }];
+
     const serviceChannelRows = [
       new TableRow({
         tableHeader: true,
@@ -921,21 +994,17 @@ export async function exportDocumentToDocx(doc: ServicePlanDocument): Promise<vo
           createHeaderCell('Service Channels', 65),
         ],
       }),
-      new TableRow({
-        children: [
-          createBodyCell('boAt Airdopes Prime 800D', true, 35),
-          createBodyCell('Door to Door Replacement (D2D)\nMulti-brand Service Centre (MSC)', false, 65),
-        ],
-      }),
+      ...serviceChannelSource.map(sc =>
+        new TableRow({
+          children: [
+            createBodyCell(sc.channelName, true, 35),
+            createBodyCell(sc.details, false, 65),
+          ],
+        })
+      ),
     ];
 
-    docChildren.push(
-      new Table({
-        width: { size: 100, type: WidthType.PERCENTAGE },
-        borders: TABLE_BORDERS,
-        rows: serviceChannelRows,
-      })
-    );
+    docChildren.push(buildTable([35, 65], serviceChannelRows));
     docChildren.push(new Paragraph({ spacing: { after: 120 }, children: [] }));
 
     // Troubleshooting FAQs
@@ -1002,7 +1071,8 @@ export async function exportDocumentToDocx(doc: ServicePlanDocument): Promise<vo
           return new TableRow({
             children: [
               new TableCell({
-                width: { size: 28, type: WidthType.PERCENTAGE },
+                width: { size: pctToDxa(28), type: WidthType.DXA },
+                borders: CELL_BORDERS,
                 margins: { top: 90, bottom: 90, left: 140, right: 140 },
                 children: [
                   new Paragraph({
@@ -1019,12 +1089,14 @@ export async function exportDocumentToDocx(doc: ServicePlanDocument): Promise<vo
                 ],
               }),
               new TableCell({
-                width: { size: 48, type: WidthType.PERCENTAGE },
+                width: { size: pctToDxa(48), type: WidthType.DXA },
+                borders: CELL_BORDERS,
                 margins: { top: 90, bottom: 90, left: 140, right: 140 },
                 children: instructionParagraphs,
               }),
               new TableCell({
-                width: { size: 24, type: WidthType.PERCENTAGE },
+                width: { size: pctToDxa(24), type: WidthType.DXA },
+                borders: CELL_BORDERS,
                 margins: { top: 90, bottom: 90, left: 140, right: 140 },
                 children: [
                   new Paragraph({
@@ -1044,13 +1116,7 @@ export async function exportDocumentToDocx(doc: ServicePlanDocument): Promise<vo
         }),
       ];
 
-      docChildren.push(
-        new Table({
-          width: { size: 100, type: WidthType.PERCENTAGE },
-          borders: TABLE_BORDERS,
-          rows: diagRows,
-        })
-      );
+      docChildren.push(buildTable([28, 48, 24], diagRows));
       docChildren.push(new Paragraph({ spacing: { after: 160 }, children: [] }));
     }
   }
@@ -1095,13 +1161,7 @@ export async function exportDocumentToDocx(doc: ServicePlanDocument): Promise<vo
         ),
       ];
 
-      docChildren.push(
-        new Table({
-          width: { size: 100, type: WidthType.PERCENTAGE },
-          borders: TABLE_BORDERS,
-          rows: codeRows,
-        })
-      );
+      docChildren.push(buildTable([40, 24, 18, 18], codeRows));
       docChildren.push(new Paragraph({ spacing: { after: 160 }, children: [] }));
     }
   }
@@ -1164,10 +1224,11 @@ export async function exportDocumentToDocx(doc: ServicePlanDocument): Promise<vo
 
         return new TableRow({
           children: [
-            createBodyCell(`7.${idx + 1}`, true, 10),
+            createBodyCell(`${bAnnexure.sectionNumber || '8'}.${idx + 1}`, true, 10),
             createBodyCell(item.category ? `${item.sopTitle}\n[${item.category}]` : item.sopTitle, true, 25),
             new TableCell({
-              width: { size: 40, type: WidthType.PERCENTAGE },
+              width: { size: pctToDxa(40), type: WidthType.DXA },
+              borders: CELL_BORDERS,
               margins: { top: 90, bottom: 90, left: 140, right: 140 },
               children: protocolParagraphs.length > 0 ? protocolParagraphs : [
                 new Paragraph({ children: [new TextRun({ text: item.protocols, size: 19, font: 'Calibri', color: '000000' })] })
@@ -1179,22 +1240,16 @@ export async function exportDocumentToDocx(doc: ServicePlanDocument): Promise<vo
       }),
     ];
 
-    docChildren.push(
-      new Table({
-        width: { size: 100, type: WidthType.PERCENTAGE },
-        borders: TABLE_BORDERS,
-        rows: annexureRows,
-      })
-    );
+    docChildren.push(buildTable([10, 25, 40, 25], annexureRows));
     docChildren.push(new Paragraph({ spacing: { after: 160 }, children: [] }));
   }
 
-  // Append any custom content elements (like custom tables, notes, paragraphs) attached to active blocks
-  doc.blocks.forEach(b => {
+  // Append any custom content elements (custom tables, notes, paragraphs, uploaded images) attached to active blocks
+  for (const b of doc.blocks) {
     if (b.enabled) {
-      appendCustomContentElements(docChildren, b);
+      await appendCustomContentElements(docChildren, b);
     }
-  });
+  }
 
   // Assemble the Word document
   const wordDoc = new Document({
@@ -1214,23 +1269,6 @@ export async function exportDocumentToDocx(doc: ServicePlanDocument): Promise<vo
               right: 1440, // 1 inch = 1440 dxa
             },
           },
-        },
-        headers: {
-          default: new Header({
-            children: [
-              new Paragraph({
-                alignment: AlignmentType.RIGHT,
-                children: [
-                  new TextRun({
-                    text: `${doc.productName} — Technical Service Specification Document`,
-                    size: 16,
-                    color: '64748B',
-                    font: 'Calibri',
-                  }),
-                ],
-              }),
-            ],
-          }),
         },
         children: docChildren,
       },

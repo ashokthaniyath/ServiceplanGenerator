@@ -12,9 +12,9 @@ interface HeaderProps {
   currentScreen: 1 | 2 | 'screen1' | 'screen2';
   onSwitchScreen?: (screen: 1 | 2) => void;
   setCurrentScreen?: (screen: 'screen1' | 'screen2') => void;
-  viewMode: 'single_block' | 'full_pdf' | 'split';
-  onSetViewMode?: (mode: 'single_block' | 'full_pdf' | 'split') => void;
-  setViewMode?: (mode: 'single_block' | 'full_pdf' | 'split') => void;
+  viewMode: 'single_block' | 'full_pdf';
+  onSetViewMode?: (mode: 'single_block' | 'full_pdf') => void;
+  setViewMode?: (mode: 'single_block' | 'full_pdf') => void;
   onOpenExport?: () => void;
   onOpenExportModal?: () => void;
   onPrint?: () => void;
@@ -43,7 +43,7 @@ export const Header: React.FC<HeaderProps> = ({
     if (setCurrentScreen) setCurrentScreen(screenNum === 1 ? 'screen1' : 'screen2');
   };
 
-  const handleViewModeChange = (mode: 'single_block' | 'full_pdf' | 'split') => {
+  const handleViewModeChange = (mode: 'single_block' | 'full_pdf') => {
     if (onSetViewMode) onSetViewMode(mode);
     if (setViewMode) setViewMode(mode);
   };
@@ -124,24 +124,15 @@ export const Header: React.FC<HeaderProps> = ({
         )}
 
         {isScreen1 && (
-          <div className="flex items-center gap-2">
-            <button
-              type="button"
-              onClick={handlePreviewClick}
-              className="flex items-center gap-1.5 px-3.5 py-2 bg-white hover:bg-gray-50 text-gray-800 border border-gray-200 rounded-md text-xs font-semibold shadow-2xs transition-colors cursor-pointer active:scale-98"
-              title="Preview entire document"
-            >
-              <Eye className="w-3.5 h-3.5" />
-              <span>Preview</span>
-            </button>
-            <button
-              type="button"
-              onClick={() => handleScreenChange(2)}
-              className="flex items-center gap-1.5 px-4 py-2 bg-blue-700 hover:bg-blue-800 text-white rounded-md text-xs font-semibold shadow-xs transition-colors active:scale-98 cursor-pointer"
-            >
-              <span>Launch Visual Editor</span>
-            </button>
-          </div>
+          <button
+            type="button"
+            onClick={handlePreviewClick}
+            className="flex items-center gap-1.5 px-3.5 py-2 bg-white hover:bg-gray-50 text-gray-800 border border-gray-200 rounded-md text-xs font-semibold shadow-2xs transition-colors cursor-pointer active:scale-98"
+            title="Preview entire document"
+          >
+            <Eye className="w-3.5 h-3.5" />
+            <span>Preview</span>
+          </button>
         )}
       </div>
     </header>

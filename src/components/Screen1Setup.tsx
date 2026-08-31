@@ -51,13 +51,17 @@ export const Screen1Setup: React.FC<Screen1SetupProps> = ({
     }));
   };
 
-  // Switching device type loads the SDK or Non-SDK variant of the Hearables App section
+  // Switching device type rebinds ONLY the Hearables App section to the SDK (full) or
+  // Non-SDK (reduced Sound/System) functionality. All other product-specific content is
+  // preserved so the current product stays isolated — no cross-product data leaks.
   const handleDeviceTypeChange = (deviceType: DeviceType) => {
     setDocument(prev => ({
       ...prev,
       deviceType,
       blocks: prev.blocks.map(b =>
-        b.type === 'hearables_app' ? { ...b, content: getHearablesContentForDeviceType(deviceType) } : b
+        b.type === 'hearables_app'
+          ? { ...b, content: getHearablesContentForDeviceType(deviceType) }
+          : b
       ),
     }));
   };
@@ -122,22 +126,6 @@ export const Screen1Setup: React.FC<Screen1SetupProps> = ({
               Generate, standardize, and customize official service manuals and technical SOP documentation.<br className="hidden sm:inline" />
               Configure product specifications, select procedural blocks, and refine details in the visual editor.
             </p>
-          </div>
-
-          {/* Sticky Top Right Launch Button */}
-          <div className="flex items-center gap-3 shrink-0">
-            <button
-              type="button"
-              onClick={onProceedToEditor}
-              disabled={activeBlocks.length === 0}
-              className="flex items-center gap-2 px-5 py-2.5 bg-blue-700 hover:bg-blue-800 disabled:bg-gray-300 text-white rounded-md font-semibold text-xs shadow-xs transition-all active:scale-98"
-            >
-              <span>Launch Visual Editor</span>
-              <span className="bg-white/20 text-white px-1.5 py-0.2 rounded text-[10px] font-mono">
-                {activeBlocks.length} Sections
-              </span>
-              <ArrowRight className="w-3.5 h-3.5" />
-            </button>
           </div>
         </div>
 

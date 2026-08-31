@@ -37,6 +37,42 @@
     display: none !important;
   }
 
+  /* ── Preview modal print mode: print EXACTLY what is previewed ── */
+  /* Hide everything in the app except the preview modal */
+  body.print-preview-mode #root > div > :not(.pdf-export-modal) {
+    display: none !important;
+  }
+
+  body.print-preview-mode .pdf-export-modal {
+    position: static !important;
+    inset: auto !important;
+    display: block !important;
+    background: #ffffff !important;
+    backdrop-filter: none !important;
+    overflow: visible !important;
+  }
+
+  body.print-preview-mode .pdf-export-modal > main {
+    display: block !important;
+    overflow: visible !important;
+    padding: 0 !important;
+    background: #ffffff !important;
+  }
+
+  body.print-preview-mode .pdf-export-modal > main > div {
+    max-width: 100% !important;
+    padding: 0 !important;
+  }
+
+  body.print-preview-mode .pdf-export-modal footer {
+    display: none !important;
+  }
+
+  /* Always print at exact 100% scale regardless of on-screen zoom level */
+  .pdf-document-root > div {
+    transform: none !important;
+  }
+
   body, html {
     background: #ffffff !important;
     padding: 0 !important;

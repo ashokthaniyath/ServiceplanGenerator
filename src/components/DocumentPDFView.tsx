@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { 
   ServicePlanDocument, 
   ServicePlanBlock, 
@@ -37,12 +37,57 @@ export const DocumentPDFView: React.FC<DocumentPDFViewProps> = ({
   selectedElement,
   onSelectDocElement,
 }) => {
-  const [pageLayoutMode, setPageLayoutMode] = useState<'paginated' | 'continuous'>('paginated');
+  const [pageLayoutMode, setPageLayoutMode] = useState<'paginated' | 'continuous'>('continuous');
   const [currentPage, setCurrentPage] = useState<number>(1);
   const totalPages = 18;
 
   // Split view hides the layout toolbar and always renders continuous flow
   const effectiveLayoutMode = hideLayoutControls ? 'continuous' : pageLayoutMode;
+
+  // Maps each section type to the paginated page number on which it first appears,
+  // so clicking a section in the sidebar can scroll the paginated preview to it.
+  const SECTION_TYPE_TO_PAGE: Record<string, number> = {
+    header_overview: 1,
+    technical_definitions: 1,
+    specifications_table: 1,
+    packaging_contents: 2,
+    colour_variants: 2,
+    product_functionalities: 3,
+    led_indications: 5,
+    charging_guidelines: 6,
+    weight_matrix: 6,
+    hearables_app: 7,
+    diagnostics_troubleshooting: 11,
+    return_codes: 18,
+    annexure: 18,
+  };
+
+  // Auto-scroll the preview to the active section when it changes (driven from the
+  // section sidebar). Continuous flow scrolls to the exact section anchor; the
+  // paginated 18-page view scrolls to the page that contains the section.
+  useEffect(() => {
+    if (!activeBlockId || isSingleBlockPreview) return;
+    const scrollTimer = setTimeout(() => {
+      const win = typeof window !== 'undefined' ? window : undefined;
+      if (!win) return;
+      let target: HTMLElement | null = null;
+      if (effectiveLayoutMode === 'continuous') {
+        target = win.document.getElementById(`pdf-section-${activeBlockId}`);
+      } else {
+        const block = document.blocks.find(b => b.id === activeBlockId);
+        const pageNo = block ? SECTION_TYPE_TO_PAGE[block.type] : undefined;
+        if (pageNo) {
+          setCurrentPage(pageNo);
+          target = win.document.getElementById(`pdf-page-${pageNo}`);
+        }
+      }
+      if (target) {
+        target.scrollIntoView({ behavior: 'smooth', block: 'start' });
+      }
+    }, 60);
+    return () => clearTimeout(scrollTimer);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [activeBlockId, effectiveLayoutMode]);
 
   const blocksToRender = isSingleBlockPreview && activeBlockId
     ? document.blocks.filter(b => b.id === activeBlockId && b.enabled)
@@ -498,15 +543,12 @@ export const DocumentPDFView: React.FC<DocumentPDFViewProps> = ({
                   <tbody>
                     <tr className="border-b border-black last:border-b-0">
                       <td className="p-1.5 font-bold border-r border-black align-top text-black">
-                        Airdopes Prime 800D
+                        {document.productName}
                       </td>
                       <td className="p-1.5 text-black leading-relaxed">
-                        <div>Raven Black</div>
-                        <div>Swedish White</div>
-                        <div>Royal Blue</div>
-                        <div>Smart Raven Black</div>
-                        <div>Smart Swedish White</div>
-                        <div>Smart Royal Blue</div>
+                        {(bVariants.content.colourVariants || []).map(cv => (
+                          <div key={cv.id}>{cv.name}</div>
+                        ))}
                       </td>
                     </tr>
                   </tbody>
@@ -518,54 +560,34 @@ export const DocumentPDFView: React.FC<DocumentPDFViewProps> = ({
                     <tbody>
                       {/* Row 1: Photos */}
                       <tr className="border-b border-black bg-white">
-                        <td className="p-3 text-center border-r border-black align-middle w-1/3">
-                          <div className="flex justify-center items-center h-28 max-w-36 mx-auto">
-                            <EarbudsCaseMockup
-                              name="Raven Black"
-                              colorHex="#1A1A1A"
-                              secondaryHex="#333333"
-                              isSmartVariant={false}
-                              showNameBelow={false}
-                              className="w-full h-full bg-transparent border-0 p-0 shadow-none hover:shadow-none"
-                            />
-                          </div>
-                        </td>
-                        <td className="p-3 text-center border-r border-black align-middle w-1/3">
-                          <div className="flex justify-center items-center h-28 max-w-36 mx-auto">
-                            <EarbudsCaseMockup
-                              name="Royal Blue"
-                              colorHex="#1E3A8A"
-                              secondaryHex="#3B82F6"
-                              isSmartVariant={false}
-                              showNameBelow={false}
-                              className="w-full h-full bg-transparent border-0 p-0 shadow-none hover:shadow-none"
-                            />
-                          </div>
-                        </td>
-                        <td className="p-3 text-center align-middle w-1/3">
-                          <div className="flex justify-center items-center h-28 max-w-36 mx-auto">
-                            <EarbudsCaseMockup
-                              name="Swedish White"
-                              colorHex="#E2E8F0"
-                              secondaryHex="#94A3B8"
-                              isSmartVariant={false}
-                              showNameBelow={false}
-                              className="w-full h-full bg-transparent border-0 p-0 shadow-none hover:shadow-none"
-                            />
-                          </div>
-                        </td>
+                        {(bVariants.content.colourVariants || []).slice(0, 3).map((cv, idx, arr) => (
+                          <td
+                            key={cv.id}
+                            className={`p-3 text-center align-middle w-1/3 ${idx < arr.length - 1 ? 'border-r border-black' : ''}`}
+                          >
+                            <div className="flex justify-center items-center h-28 max-w-36 mx-auto">
+                              <EarbudsCaseMockup
+                                name={cv.name}
+                                colorHex={cv.colorHex}
+                                secondaryHex={cv.secondaryHex || cv.colorHex}
+                                isSmartVariant={cv.isSmartVariant || false}
+                                showNameBelow={false}
+                                className="w-full h-full bg-transparent border-0 p-0 shadow-none hover:shadow-none"
+                              />
+                            </div>
+                          </td>
+                        ))}
                       </tr>
                       {/* Row 2: Names below photos */}
                       <tr className="bg-white">
-                        <td className="p-1.5 text-center font-bold text-black border-r border-black w-1/3">
-                          Raven Black
-                        </td>
-                        <td className="p-1.5 text-center font-bold text-black border-r border-black w-1/3">
-                          Royal Blue
-                        </td>
-                        <td className="p-1.5 text-center font-bold text-black w-1/3">
-                          Swedish White
-                        </td>
+                        {(bVariants.content.colourVariants || []).slice(0, 3).map((cv, idx, arr) => (
+                          <td
+                            key={cv.id}
+                            className={`p-1.5 text-center font-bold text-black w-1/3 ${idx < arr.length - 1 ? 'border-r border-black' : ''}`}
+                          >
+                            {cv.name}
+                          </td>
+                        ))}
                       </tr>
                     </tbody>
                   </table>
@@ -804,17 +826,9 @@ export const DocumentPDFView: React.FC<DocumentPDFViewProps> = ({
                 {(() => {
                   const wmRows = bWeight.content.weightMatrixRows && bWeight.content.weightMatrixRows.length > 0
                     ? bWeight.content.weightMatrixRows
-                    : [
-                        {
-                          id: 'wm-row-0',
-                          product: 'boAt Airdopes Prime 800D',
-                          length: '24.9 mm',
-                          breadth: '20.77 mm',
-                          height: '32.2 mm',
-                          earbudsWeight: '4 g per earbud',
-                          caseWeight: '36 g',
-                        },
-                      ];
+                    : bWeight.content.weightMatrix
+                    ? [{ id: 'wm-row-0', ...bWeight.content.weightMatrix }]
+                    : [];
 
                   return (
                     <table className="w-full border border-black text-xs border-collapse">
@@ -858,31 +872,6 @@ export const DocumentPDFView: React.FC<DocumentPDFViewProps> = ({
                 {bHearables.sectionNumber} {bHearables.title}
               </h2>
 
-              {/* SDK / Non-SDK Device Classification Callout */}
-              <div 
-                className="border rounded-sm p-3 flex items-center justify-between gap-3"
-                style={{ borderColor: getBlockAccent(bHearables.id), backgroundColor: `${getBlockAccent(bHearables.id)}08` }}
-              >
-                <p className="text-xs text-slate-800 leading-relaxed">
-                  This model is classified as a <span className="font-bold">{document.deviceType}</span> device.
-                  SDK devices support the full Hearables app feature set (EQ, touch remapping, OTA updates);
-                  Non-SDK devices support the reduced Sound / System app set only.
-                </p>
-                <div className="flex items-center gap-1.5 shrink-0">
-                  {(['SDK', 'Non-SDK'] as const).map(dt => (
-                    <span
-                      key={dt}
-                      className={`text-[10px] px-2 py-1 rounded font-bold uppercase tracking-wider border ${
-                        document.deviceType === dt ? 'text-white' : 'text-slate-400 bg-white border-slate-200'
-                      }`}
-                      style={document.deviceType === dt ? { backgroundColor: getBlockAccent(bHearables.id), borderColor: getBlockAccent(bHearables.id) } : {}}
-                    >
-                      {dt}
-                    </span>
-                  ))}
-                </div>
-              </div>
-
               <div className="overflow-hidden border border-black">
                 <table className="w-full border-collapse table-fixed text-xs">
                   <thead>
@@ -906,7 +895,7 @@ export const DocumentPDFView: React.FC<DocumentPDFViewProps> = ({
                           className={`p-3 text-center align-top bg-white ${idx < (bHearables.content.hearablesAppTabs || []).length - 1 ? 'border-r border-black' : ''}`}
                         >
                           <div className="flex justify-center items-center w-full py-1">
-                            <HearablesAppScreenMockup tabType={tab.mockupType} title={tab.tabName} />
+                            <HearablesAppScreenMockup tabType={tab.mockupType} title={tab.tabName} imageUrl={tab.imageUrl} />
                           </div>
                         </td>
                       ))}
@@ -1447,7 +1436,7 @@ export const DocumentPDFView: React.FC<DocumentPDFViewProps> = ({
                             {items.map((item, idx) => (
                               <tr key={item.id || idx}>
                                 <td className="p-1.5 text-center font-bold font-mono border-r border-black align-top bg-slate-50/50">
-                                  {`7.${idx + 1}`}
+                                  {`${bAnnexure.sectionNumber || '8'}.${idx + 1}`}
                                 </td>
                                 <td className="p-1.5 font-bold text-slate-900 border-r border-black align-top">
                                   <span>{item.sopTitle}</span>
@@ -2108,31 +2097,6 @@ export const DocumentPDFView: React.FC<DocumentPDFViewProps> = ({
                 {/* Hearables App Functionalities */}
                 {block.type === 'hearables_app' && (
                   <div className="space-y-6 text-xs">
-                    {/* SDK / Non-SDK Device Classification Callout */}
-                    <div 
-                      className="border rounded-sm p-3 flex items-center justify-between gap-3"
-                      style={{ borderColor: getBlockAccent(block.id), backgroundColor: `${getBlockAccent(block.id)}08` }}
-                    >
-                      <p className="text-xs text-slate-800 leading-relaxed">
-                        This model is classified as a <span className="font-bold">{document.deviceType}</span> device.
-                        SDK devices support the full Hearables app feature set (EQ, touch remapping, OTA updates);
-                        Non-SDK devices support the reduced Sound / System app set only.
-                      </p>
-                      <div className="flex items-center gap-1.5 shrink-0">
-                        {(['SDK', 'Non-SDK'] as const).map(dt => (
-                          <span
-                            key={dt}
-                            className={`text-[10px] px-2 py-1 rounded font-bold uppercase tracking-wider border ${
-                              document.deviceType === dt ? 'text-white' : 'text-slate-400 bg-white border-slate-200'
-                            }`}
-                            style={document.deviceType === dt ? { backgroundColor: getBlockAccent(block.id), borderColor: getBlockAccent(block.id) } : {}}
-                          >
-                            {dt}
-                          </span>
-                        ))}
-                      </div>
-                    </div>
-
                     <div className="overflow-hidden border border-black rounded-xs">
                       <table className="w-full border-collapse table-fixed">
                         <thead>
@@ -2160,7 +2124,7 @@ export const DocumentPDFView: React.FC<DocumentPDFViewProps> = ({
                                 }`}
                               >
                                 <div className="flex justify-center items-center w-full py-1">
-                                  <HearablesAppScreenMockup tabType={tab.mockupType} title={tab.tabName} />
+                                  <HearablesAppScreenMockup tabType={tab.mockupType} title={tab.tabName} imageUrl={tab.imageUrl} />
                                 </div>
                               </td>
                             ))}

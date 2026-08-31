@@ -162,10 +162,25 @@ export const HearablesAppScreenMockup: React.FC<{
   tabType: 'sound' | 'touch' | 'system';
   title: string;
   className?: string;
-}> = ({ tabType, title, className = '' }) => {
+  imageUrl?: string;
+}> = ({ tabType, title, className = '', imageUrl }) => {
   // Prefer a real app screenshot from /assets (e.g. assets/images/app-sound-tab.png)
   const [assetFailed, setAssetFailed] = useState(false);
   const assetUrl = `/images/app-${tabType}-tab.png`;
+
+  // A user-uploaded picture always takes priority and is what appears in the final document.
+  if (imageUrl) {
+    return (
+      <div className={`w-full max-w-[168px] sm:max-w-[178px] mx-auto ${className}`}>
+        <img
+          src={imageUrl}
+          alt={title}
+          className="w-full h-[325px] object-contain rounded-xl border border-slate-200 bg-white"
+          referrerPolicy="no-referrer"
+        />
+      </div>
+    );
+  }
 
   if (!assetFailed) {
     return (
@@ -182,7 +197,7 @@ export const HearablesAppScreenMockup: React.FC<{
   }
 
   return (
-    <div className={`w-full max-w-[168px] sm:max-w-[178px] h-[325px] bg-slate-950 text-white rounded-xl p-2.5 border border-slate-800 shadow-sm flex flex-col font-sans text-xs select-none mx-auto ${className}`}>
+    <div data-mockup={tabType} className={`w-full max-w-[168px] sm:max-w-[178px] h-[325px] bg-slate-950 text-white rounded-xl p-2.5 border border-slate-800 shadow-sm flex flex-col font-sans text-xs select-none mx-auto ${className}`}>
       {/* Top Status Bar */}
       <div className="flex justify-between items-center text-[9px] text-slate-400 pb-1.5 border-b border-slate-800">
         <span>12:30</span>

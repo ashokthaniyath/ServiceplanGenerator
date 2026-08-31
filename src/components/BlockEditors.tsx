@@ -1813,23 +1813,48 @@ export const BlockEditors: React.FC<BlockEditorProps> = ({
                     }}
                     className={getFieldClass(`app-tab-${tab.id}`, tab.id, undefined, "font-bold text-slate-900 text-xs text-center border-b border-slate-200 pb-1 focus:outline-none w-full")}
                   />
-                  <HearablesAppScreenMockup tabType={tab.mockupType} title={tab.tabName} />
+                  <HearablesAppScreenMockup tabType={tab.mockupType} title={tab.tabName} imageUrl={tab.imageUrl} />
 
-                  {/* Supplementary tab image (drop file into assets/images/) replaces the old description text */}
-                  <img
-                    src={`/images/app-${tab.mockupType}-guide.png`}
-                    alt={`${tab.tabName} guide`}
-                    className="w-full rounded-lg border border-slate-200 object-contain max-h-32 bg-slate-50"
-                    referrerPolicy="no-referrer"
-                    onError={e => {
-                      e.currentTarget.onerror = null;
-                      e.currentTarget.src =
-                        'data:image/svg+xml;utf8,' +
-                        encodeURIComponent(
-                          `<svg xmlns="http://www.w3.org/2000/svg" width="220" height="80"><rect width="100%" height="100%" fill="#eff6ff" stroke="#bfdbfe"/><text x="50%" y="50%" font-family="sans-serif" font-size="10" fill="#1d4ed8" text-anchor="middle" dominant-baseline="middle">Add image: assets/images/app-${tab.mockupType}-guide.png</text></svg>`
-                        );
-                    }}
-                  />
+                  {/* Add / Edit / Delete the tab picture — appears in the Full Document & final DOCX */}
+                  <div className="w-full flex items-center justify-center gap-2">
+                    <label className="cursor-pointer inline-flex items-center gap-1.5 px-2.5 py-1.5 text-[11px] font-semibold rounded-md border border-blue-200 bg-blue-50 text-blue-700 hover:bg-blue-100 transition-colors">
+                      <ImageIcon className="w-3.5 h-3.5" />
+                      <span>{tab.imageUrl ? 'Replace Picture' : 'Add Picture'}</span>
+                      <input
+                        type="file"
+                        accept="image/*"
+                        className="hidden"
+                        onChange={e => {
+                          const file = e.target.files?.[0];
+                          if (!file) return;
+                          const reader = new FileReader();
+                          reader.onload = () => {
+                            const dataUrl = reader.result as string;
+                            const updated = [...tabs];
+                            updated[idx] = { ...updated[idx], imageUrl: dataUrl };
+                            updateContent({ hearablesAppTabs: updated });
+                          };
+                          reader.readAsDataURL(file);
+                          e.target.value = '';
+                        }}
+                      />
+                    </label>
+                    {tab.imageUrl && (
+                      <button
+                        type="button"
+                        onClick={() => {
+                          const updated = [...tabs];
+                          updated[idx] = { ...updated[idx], imageUrl: undefined };
+                          updateContent({ hearablesAppTabs: updated });
+                        }}
+                        className="inline-flex items-center gap-1.5 px-2.5 py-1.5 text-[11px] font-semibold rounded-md border border-red-200 bg-red-50 text-red-600 hover:bg-red-100 transition-colors"
+                        title="Delete this tab picture"
+                      >
+                        <Trash2 className="w-3.5 h-3.5" />
+                        <span>Delete</span>
+                      </button>
+                    )}
+                  </div>
                 </div>
               ))}
             </div>
@@ -2252,15 +2277,6 @@ export const BlockEditors: React.FC<BlockEditorProps> = ({
               },
             ];
 
-        const categories = ['QA Testing', 'Tutorial Video', 'Service Flowchart', 'Warranty Portal', 'General'];
-        const categoryBadgeColors: Record<string, { bg: string; text: string; border: string }> = {
-          'QA Testing': { bg: 'bg-emerald-50', text: 'text-emerald-800', border: 'border-emerald-200' },
-          'Tutorial Video': { bg: 'bg-indigo-50', text: 'text-indigo-800', border: 'border-indigo-200' },
-          'Service Flowchart': { bg: 'bg-blue-50', text: 'text-blue-800', border: 'border-blue-200' },
-          'Warranty Portal': { bg: 'bg-amber-50', text: 'text-amber-800', border: 'border-amber-200' },
-          General: { bg: 'bg-slate-50', text: 'text-slate-700', border: 'border-slate-200' },
-        };
-
         const updateAnnexure = (updatedItems: AnnexureItem[]) => {
           updateContent({
             annexureItems: updatedItems,
@@ -2312,44 +2328,17 @@ export const BlockEditors: React.FC<BlockEditorProps> = ({
                   key: 'category',
                   header: 'Category',
                   width: 'w-32 min-w-[130px]',
-                  render: (item, idx) => {
-                    const catStyle = categoryBadgeColors[item.category || 'General'] || categoryBadgeColors.General;
-                    return (
-                      <select
-                        value={item.category || 'QA Testing'}
-                        onChange={e => {
-                          const updated = [...items];
-                          updated[idx] = { ...updated[idx], category: e.target.value };
-                          updateAnnexure(updated);
-                        }}
-                        className={`w-full px-2 py-1 text-[11px] font-bold rounded-md border ${catStyle.border} ${catStyle.bg} ${catStyle.text} focus:outline-none cursor-pointer`}
-                      >
-                        {categories.map(cat => (
-                          <option key={cat} value={cat}>
-                            {cat}
-                          </option>
-                        ))}
-                      </select>
-                    );
-                  },
-                },
-                {
-                  key: 'sopTitle',
-                  header: 'SOP / Topic Name',
-                  width: 'w-1/4 min-w-[180px]',
                   render: (item, idx) => (
                     <input
                       type="text"
-                      value={item.sopTitle}
-                      onFocus={() => triggerSelect(`ann-title-${item.id}`, 'heading', `Annexure SOP: ${item.sopTitle}`, item.sopTitle, { itemId: item.id, subKey: 'sopTitle', isBold: true })}
-                      onClick={() => triggerSelect(`ann-title-${item.id}`, 'heading', `Annexure SOP: ${item.sopTitle}`, item.sopTitle, { itemId: item.id, subKey: 'sopTitle', isBold: true })}
+                      value={item.category || ''}
                       onChange={e => {
                         const updated = [...items];
-                        updated[idx] = { ...updated[idx], sopTitle: e.target.value };
+                        updated[idx] = { ...updated[idx], category: e.target.value };
                         updateAnnexure(updated);
                       }}
-                      className={getFieldClass(`ann-title-${item.id}`, item.id, 'sopTitle', "w-full px-2.5 py-1.5 font-bold text-slate-900 text-xs rounded-lg border border-slate-300 focus:outline-none bg-white")}
-                      placeholder="e.g. Testing Standard Operating Procedure"
+                      className="w-full px-2.5 py-1.5 text-xs font-bold text-slate-900 rounded-lg border border-slate-300 focus:outline-none bg-white"
+                      placeholder="e.g. QA Testing"
                     />
                   ),
                 },
@@ -2464,7 +2453,6 @@ export const BlockEditors: React.FC<BlockEditorProps> = ({
   return (
     <div className="space-y-6">
       {renderBlockEditorBody()}
-      {renderCustomContentElements()}
     </div>
   );
 };

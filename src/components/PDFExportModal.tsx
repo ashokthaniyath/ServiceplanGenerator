@@ -22,7 +22,6 @@ interface PDFExportModalProps {
   onClose: () => void;
   document: ServicePlanDocument;
   setDocument: React.Dispatch<React.SetStateAction<ServicePlanDocument>>;
-  onExecutePrint: () => void;
 }
 
 export const PDFExportModal: React.FC<PDFExportModalProps> = ({
@@ -30,7 +29,6 @@ export const PDFExportModal: React.FC<PDFExportModalProps> = ({
   onClose,
   document,
   setDocument,
-  onExecutePrint,
 }) => {
   const [zoomLevel, setZoomLevel] = useState<number>(1);
   const [isExportingDocx, setIsExportingDocx] = useState<boolean>(false);
@@ -52,14 +50,26 @@ export const PDFExportModal: React.FC<PDFExportModalProps> = ({
   };
 
   const handleDownloadPdf = () => {
-    onClose();
-    onExecutePrint();
+    // Print the exact preview shown in this modal (same DOM, same layout mode).
+    // Filename nomenclature: "{Product Name} - {SDK|Non-SDK}"
+    window.document.title = `${document.productName} - ${document.deviceType}`;
+    window.document.body.classList.add('print-preview-mode');
+    const cleanup = () => {
+      window.document.body.classList.remove('print-preview-mode');
+      window.removeEventListener('afterprint', cleanup);
+    };
+    window.addEventListener('afterprint', cleanup);
+    setTimeout(() => {
+      window.print();
+      // Safety net for browsers that don't fire afterprint reliably
+      setTimeout(cleanup, 1000);
+    }, 100);
   };
 
   const enabledSectionsCount = document.blocks.filter(b => b.enabled).length;
 
   return (
-    <div className="fixed inset-0 z-50 flex flex-col bg-black/40 backdrop-blur-xs animate-in fade-in duration-200">
+    <div className="pdf-export-modal fixed inset-0 z-50 flex flex-col bg-black/40 backdrop-blur-xs animate-in fade-in duration-200">
       {/* Top Navigation & Download Bar */}
       <header className="h-16 bg-white border-b border-gray-200 px-4 sm:px-6 flex items-center justify-between shrink-0 z-10 shadow-sm">
         {/* Left: Document Info */}

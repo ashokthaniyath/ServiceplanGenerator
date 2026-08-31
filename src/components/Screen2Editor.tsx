@@ -47,8 +47,8 @@ import { SectionCustomizerPanel } from './SectionCustomizerPanel';
 interface Screen2EditorProps {
   document: ServicePlanDocument;
   setDocument: React.Dispatch<React.SetStateAction<ServicePlanDocument>>;
-  viewMode: 'single_block' | 'full_pdf' | 'split';
-  setViewMode: (mode: 'single_block' | 'full_pdf' | 'split') => void;
+  viewMode: 'single_block' | 'full_pdf';
+  setViewMode: (mode: 'single_block' | 'full_pdf') => void;
   activeBlockId: string;
   setActiveBlockId: (id: string) => void;
 }
@@ -62,7 +62,7 @@ export const Screen2Editor: React.FC<Screen2EditorProps> = ({
   setActiveBlockId,
 }) => {
   const [searchFilter, setSearchFilter] = useState('');
-  const [rightTab, setRightTab] = useState<'customize' | 'doc_settings'>('customize');
+  const [rightTab, setRightTab] = useState<'customize'>('customize');
   const [isAddBlockOpen, setIsAddBlockOpen] = useState(false);
   const [zoomLevel, setZoomLevel] = useState<number>(1);
   const [syncSuccessMsg, setSyncSuccessMsg] = useState<string | null>(null);
@@ -1029,7 +1029,7 @@ export const Screen2Editor: React.FC<Screen2EditorProps> = ({
               </span>
             </div>
 
-            {/* View Mode Toggle (Block Editor | Split | Full Document) */}
+            {/* View Mode Toggle (Block Editor | Full Document) */}
             <div className="flex items-center bg-[#F3F4F6] rounded-full p-1 border border-[#E5E7EB] shrink-0 ml-2">
               <button
                 onClick={() => setViewMode('single_block')}
@@ -1042,18 +1042,6 @@ export const Screen2Editor: React.FC<Screen2EditorProps> = ({
               >
                 <Layers className="w-3.5 h-3.5" />
                 <span className="hidden md:inline">Block Editor</span>
-              </button>
-              <button
-                onClick={() => setViewMode('split')}
-                className={`flex items-center gap-1.5 px-3 py-1 text-xs font-medium rounded-full transition-all cursor-pointer ${
-                  viewMode === 'split'
-                    ? 'bg-white text-gray-900 shadow-sm font-semibold'
-                    : 'text-gray-600 hover:text-gray-900'
-                }`}
-                title="Split View: Editor & Live Preview"
-              >
-                <Columns className="w-3.5 h-3.5" />
-                <span className="hidden md:inline">Split</span>
               </button>
               <button
                 onClick={() => setViewMode('full_pdf')}
@@ -1072,7 +1060,7 @@ export const Screen2Editor: React.FC<Screen2EditorProps> = ({
 
           {/* Zoom Controls, Block Actions & Right Panel Quick Toggle if collapsed */}
           <div className="flex items-center gap-1.5 shrink-0">
-            {(viewMode === 'full_pdf' || viewMode === 'split') && (
+            {viewMode === 'full_pdf' && (
               <div className="flex items-center gap-1 bg-gray-50 px-2 py-0.5 rounded-md border border-gray-200 text-xs">
                 <button
                   onClick={() => setZoomLevel(prev => Math.max(0.6, prev - 0.1))}
@@ -1166,41 +1154,12 @@ export const Screen2Editor: React.FC<Screen2EditorProps> = ({
             <div className="h-full overflow-y-auto p-2 sm:p-4 flex justify-center bg-gray-50">
               <DocumentPDFView
                 document={document}
+                activeBlockId={activeBlockId}
                 scale={zoomLevel}
                 isSingleBlockPreview={false}
                 selectedElement={selectedElement}
                 onSelectDocElement={handleSelectDocElement}
               />
-            </div>
-          )}
-
-          {/* Mode 3: Split View (Side-by-Side Editor + Live PDF) */}
-          {viewMode === 'split' && (
-            <div className="h-full grid grid-cols-1 lg:grid-cols-2 divide-x divide-[#E5E7EB]">
-              {/* Left Half: Block Editor */}
-              <div className="h-full overflow-y-auto p-4 bg-[#F9FAFB]">
-                <div className="bg-white rounded-xl border border-[#E5E7EB] p-5 shadow-xs">
-                  <BlockEditors
-                    block={activeBlock}
-                    onChange={handleUpdateBlock}
-                    selectedElement={selectedElement}
-                    onSelectDocElement={handleSelectDocElement}
-                  />
-                </div>
-              </div>
-
-              {/* Right Half: Live Document Page Render */}
-              <div className="h-full overflow-y-auto p-2 bg-gray-50 flex justify-center">
-                <DocumentPDFView
-                  document={document}
-                  activeBlockId={activeBlockId}
-                  scale={zoomLevel * 0.9}
-                  isSingleBlockPreview={false}
-                  hideLayoutControls
-                  selectedElement={selectedElement}
-                  onSelectDocElement={handleSelectDocElement}
-                />
-              </div>
             </div>
           )}
         </div>
@@ -1240,21 +1199,6 @@ export const Screen2Editor: React.FC<Screen2EditorProps> = ({
               title="Open Customizer"
             >
               <Sliders className="w-4 h-4" />
-            </button>
-
-            {/* Quick Tab Switcher 2: Doc Settings */}
-            <button
-              type="button"
-              onClick={() => {
-                setRightTab('doc_settings');
-                setIsRightCollapsed(false);
-              }}
-              className={`p-2 rounded-lg transition-colors cursor-pointer ${
-                rightTab === 'doc_settings' ? 'bg-gray-100 text-gray-900 font-bold' : 'text-gray-400 hover:text-gray-800 hover:bg-gray-50'
-              }`}
-              title="Open Document Settings"
-            >
-              <Palette className="w-4 h-4" />
             </button>
           </div>
 
@@ -1298,27 +1242,10 @@ export const Screen2Editor: React.FC<Screen2EditorProps> = ({
 
           {/* Lane 3 Tab Switcher + Collapse Header */}
           <div className="p-2 border-b border-[#E5E7EB] flex items-center gap-1 bg-gray-50/50">
-            <div className="grid grid-cols-2 gap-1 flex-1">
-              <button
-                onClick={() => setRightTab('customize')}
-                className={`py-1.5 text-xs font-semibold rounded-md transition-all ${
-                  rightTab === 'customize'
-                    ? 'bg-white text-gray-900 shadow-xs'
-                    : 'text-gray-500 hover:text-gray-900'
-                }`}
-              >
+            <div className="flex-1">
+              <div className="text-xs font-semibold text-gray-900 px-2">
                 Customizer
-              </button>
-              <button
-                onClick={() => setRightTab('doc_settings')}
-                className={`py-1.5 text-xs font-semibold rounded-md transition-all ${
-                  rightTab === 'doc_settings'
-                    ? 'bg-white text-gray-900 shadow-xs'
-                    : 'text-gray-500 hover:text-gray-900'
-                }`}
-              >
-                Doc Settings
-              </button>
+              </div>
             </div>
 
             <button
@@ -1559,135 +1486,6 @@ export const Screen2Editor: React.FC<Screen2EditorProps> = ({
                       className="w-full p-2 text-xs rounded border border-gray-300 bg-white text-gray-900 focus:border-black focus:ring-1 focus:ring-black outline-none"
                     />
                   )}
-                </div>
-              </div>
-            )}
-
-            {/* TAB 2: DOCUMENT SETTINGS */}
-            {rightTab === 'doc_settings' && (
-              <div className="space-y-4">
-                <div>
-                  <h3 className="font-bold text-gray-900 text-xs uppercase tracking-wider">
-                    Document Settings
-                  </h3>
-                  <p className="text-gray-500 text-[11px]">Global headers, confidentiality, and theme</p>
-                </div>
-
-                <div className="space-y-3 p-3.5 bg-gray-50 rounded-lg border border-gray-200">
-                  <div>
-                    <label className="block text-[11px] font-bold text-gray-500 uppercase mb-1">
-                      Product Full Model Name
-                    </label>
-                    <input
-                      type="text"
-                      value={document.productName}
-                      onChange={e => setDocument(prev => ({ ...prev, productName: e.target.value }))}
-                      className="w-full px-2.5 py-1.5 text-xs rounded border border-gray-200 bg-white font-bold text-gray-900 focus:border-black focus:ring-1 focus:ring-black outline-none"
-                    />
-                  </div>
-
-                  <div>
-                    <label className="block text-[11px] font-bold text-gray-500 uppercase mb-1">
-                      Model SKU Code
-                    </label>
-                    <input
-                      type="text"
-                      value={document.modelCode}
-                      onChange={e => setDocument(prev => ({ ...prev, modelCode: e.target.value }))}
-                      className="w-full px-2.5 py-1.5 text-xs rounded border border-gray-200 bg-white font-mono text-gray-900 focus:border-black focus:ring-1 focus:ring-black outline-none"
-                    />
-                  </div>
-
-                  <div>
-                    <label className="block text-[11px] font-bold text-gray-500 uppercase mb-1">
-                      Confidentiality Watermark
-                    </label>
-                    <input
-                      type="text"
-                      value={document.watermark}
-                      onChange={e => setDocument(prev => ({ ...prev, watermark: e.target.value }))}
-                      placeholder="e.g. OFFICIAL SERVICE PLAN"
-                      className="w-full px-2.5 py-1.5 text-xs rounded border border-gray-200 bg-white uppercase font-bold text-gray-700 focus:border-black focus:ring-1 focus:ring-black outline-none font-mono"
-                    />
-                  </div>
-
-                  {/* Global Theme & Accent Palette */}
-                  <div className="pt-2 border-t border-gray-200 space-y-2.5">
-                    <div className="flex items-center justify-between">
-                      <label className="block text-[11px] font-bold text-gray-700 uppercase flex items-center gap-1.5">
-                        <Palette className="w-3.5 h-3.5 text-gray-500" />
-                        Global Brand Accent Palette
-                      </label>
-                      <span className="text-[10px] font-mono font-semibold px-1.5 py-0.5 rounded bg-gray-200 text-gray-800">
-                        {document.themeColor || '#1e40af'}
-                      </span>
-                    </div>
-
-                    <div className="grid grid-cols-6 gap-1.5">
-                      {ACCENT_PALETTE_PRESETS.map(color => {
-                        const isSelected = document.themeColor === color.hex;
-                        return (
-                          <button
-                            key={color.hex}
-                            type="button"
-                            onClick={() => handleApplyAccentColor(color.hex, true)}
-                            className="h-7 rounded-md border transition-all flex items-center justify-center relative hover:scale-105"
-                            style={{
-                              backgroundColor: color.hex,
-                              borderColor: isSelected ? '#000000' : 'rgba(0,0,0,0.1)',
-                              boxShadow: isSelected ? '0 0 0 2px white, 0 0 0 3px #000' : 'none'
-                            }}
-                            title={`Set ${color.label} for entire document`}
-                          >
-                            {isSelected && (
-                              <Check className="w-3.5 h-3.5 text-white stroke-[3]" />
-                            )}
-                          </button>
-                        );
-                      })}
-                    </div>
-
-                    <div className="flex items-center gap-2 pt-1">
-                      <input
-                        type="color"
-                        value={document.themeColor || '#1e40af'}
-                        onChange={e => handleApplyAccentColor(e.target.value, true)}
-                        className="w-7 h-7 rounded border border-gray-200 cursor-pointer p-0 overflow-hidden"
-                        title="Pick custom global accent"
-                      />
-                      <input
-                        type="text"
-                        value={document.themeColor || '#1e40af'}
-                        onChange={e => {
-                          const val = e.target.value;
-                          if (/^#[0-9A-Fa-f]{0,6}$/.test(val)) {
-                            handleApplyAccentColor(val, true);
-                          }
-                        }}
-                        placeholder="#1e40af"
-                        className="flex-1 px-2 py-1 text-xs font-mono rounded border border-gray-200 uppercase text-gray-800 focus:border-black focus:ring-1 focus:ring-black outline-none"
-                      />
-                    </div>
-
-                    <button
-                      type="button"
-                      onClick={() => handleApplyAccentColor(document.themeColor || '#1e40af', true)}
-                      className="w-full py-2 bg-blue-700 hover:bg-blue-800 text-white rounded font-semibold text-xs flex items-center justify-center gap-1.5 transition-colors cursor-pointer shadow-xs"
-                    >
-                      <CheckCheck className="w-3.5 h-3.5" />
-                      <span>Sync Theme Across All {document.blocks.length} Sections</span>
-                    </button>
-                  </div>
-
-                  <label className="flex items-center gap-2 pt-2 border-t border-gray-200 cursor-pointer font-semibold text-gray-700">
-                    <input
-                      type="checkbox"
-                      checked={document.showHeaderFooter}
-                      onChange={e => setDocument(prev => ({ ...prev, showHeaderFooter: e.target.checked }))}
-                      className="rounded text-black focus:ring-black accent-black"
-                    />
-                    <span>Include Header Branding in PDF</span>
-                  </label>
                 </div>
               </div>
             )}

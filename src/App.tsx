@@ -19,8 +19,8 @@ export default function App() {
   // Active Block ID in Visual Editor
   const [activeBlockId, setActiveBlockId] = useState<string>(DEFAULT_BOAT_AIRDOPES_800D.blocks[0].id);
 
-  // View Mode for Lane 2: Split (Editor + Live PDF) is the default main canvas mode
-  const [viewMode, setViewMode] = useState<'single_block' | 'full_pdf' | 'split'>('split');
+  // View Mode for Lane 2: Single Block Editor is the default main canvas mode
+  const [viewMode, setViewMode] = useState<'single_block' | 'full_pdf'>('single_block');
 
   // Modals state
   const [isExportModalOpen, setIsExportModalOpen] = useState(false);
@@ -89,7 +89,6 @@ export default function App() {
         onClose={() => setIsExportModalOpen(false)}
         document={document}
         setDocument={setDocument}
-        onExecutePrint={handleExecutePrint}
       />
     </div>
   );
