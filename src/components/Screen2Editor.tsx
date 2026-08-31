@@ -1151,7 +1151,7 @@ export const Screen2Editor: React.FC<Screen2EditorProps> = ({
 
           {/* Mode 2: Full Document Multi-Page PDF Preview */}
           {viewMode === 'full_pdf' && (
-            <div className="h-full overflow-y-auto p-2 sm:p-4 flex justify-center bg-gray-50">
+            <div className="h-full overflow-y-auto p-2 sm:p-4 flex justify-center items-start bg-gray-50">
               <DocumentPDFView
                 document={document}
                 activeBlockId={activeBlockId}

@@ -39,7 +39,7 @@ export const DocumentPDFView: React.FC<DocumentPDFViewProps> = ({
 }) => {
   const [pageLayoutMode, setPageLayoutMode] = useState<'paginated' | 'continuous'>('continuous');
   const [currentPage, setCurrentPage] = useState<number>(1);
-  const totalPages = 18;
+  const totalPages = 9;
 
   // Split view hides the layout toolbar and always renders continuous flow
   const effectiveLayoutMode = hideLayoutControls ? 'continuous' : pageLayoutMode;
@@ -53,13 +53,13 @@ export const DocumentPDFView: React.FC<DocumentPDFViewProps> = ({
     packaging_contents: 2,
     colour_variants: 2,
     product_functionalities: 3,
-    led_indications: 5,
-    charging_guidelines: 6,
-    weight_matrix: 6,
-    hearables_app: 7,
-    diagnostics_troubleshooting: 11,
-    return_codes: 18,
-    annexure: 18,
+    led_indications: 4,
+    charging_guidelines: 5,
+    weight_matrix: 5,
+    hearables_app: 6,
+    diagnostics_troubleshooting: 8,
+    return_codes: 9,
+    annexure: 9,
   };
 
   // Auto-scroll the preview to the active section when it changes (driven from the
@@ -360,7 +360,7 @@ export const DocumentPDFView: React.FC<DocumentPDFViewProps> = ({
       <div 
         key={`page-${pageNumber}`}
         id={`pdf-page-${pageNumber}`}
-        className="pdf-page bg-white text-slate-900 w-[210mm] max-w-full min-h-[297mm] p-6 sm:p-[1in] mb-8 relative flex flex-col justify-between border border-gray-300 shadow-md rounded-xs box-border transition-shadow hover:shadow-lg print:shadow-none print:border-none print:p-0 print:m-0 print:break-after-page print:w-[210mm] print:min-h-[297mm]"
+        className="pdf-page shrink-0 grow-0 h-auto bg-white text-slate-900 w-[210mm] max-w-full min-h-[297mm] p-6 sm:p-[1in] mb-8 relative flex flex-col justify-between border border-gray-300 shadow-md rounded-xs box-border transition-shadow hover:shadow-lg print:shadow-none print:border-none print:p-0 print:m-0 print:break-after-page print:w-[210mm] print:min-h-[297mm]"
         onClick={(e) => e.stopPropagation()}
       >
         {/* Page Content */}
@@ -464,7 +464,7 @@ export const DocumentPDFView: React.FC<DocumentPDFViewProps> = ({
                     </tr>
                   </thead>
                   <tbody>
-                    {(bSpecs.content.specifications || []).slice(0, 7).map(spec => (
+                    {(bSpecs.content.specifications || []).map(spec => (
                       <tr key={spec.id} className="border-b border-black last:border-b-0">
                         <td 
                           onClick={(e) => handleElementClick(e, bSpecs.id, `spec-key-${spec.id}`, 'table-cell', `Spec: ${spec.key}`, spec.key, { isBold: true, itemId: spec.id, subKey: 'key' })}
@@ -475,41 +475,6 @@ export const DocumentPDFView: React.FC<DocumentPDFViewProps> = ({
                         <td 
                           onClick={(e) => handleElementClick(e, bSpecs.id, `spec-val-${spec.id}`, 'table-cell', `Value: ${spec.key}`, spec.value, { itemId: spec.id, subKey: 'value' })}
                           className={`p-1.5 text-black ${getClickableClass(bSpecs.id, `spec-val-${spec.id}`)}`}
-                        >
-                          {spec.value}
-                        </td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
-              </div>
-            </div>
-          )}
-
-          {/* Page 2 */}
-          {pageNumber === 2 && (
-            <div className="space-y-4">
-              {/* 3.1 Specs Part 2 */}
-              <div>
-                <table className="w-full border border-black text-xs border-collapse">
-                  <thead>
-                    <tr className="border-b border-black">
-                      <th className="p-1.5 border-r border-black font-bold text-left w-1/2">Product Details</th>
-                      <th className="p-1.5 font-bold text-left">Specification Values</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {(bSpecs.content.specifications || []).slice(7).map(spec => (
-                      <tr key={spec.id} className="border-b border-black last:border-b-0">
-                        <td 
-                          onClick={(e) => handleElementClick(e, bSpecs.id, `spec-key-${spec.id}`, 'table-cell', `Spec: ${spec.key}`, spec.key, { isBold: true, itemId: spec.id, subKey: 'key' })}
-                          className={`p-1.5 font-bold border-r border-black ${getClickableClass(bSpecs.id, `spec-key-${spec.id}`)}`}
-                        >
-                          {spec.key}
-                        </td>
-                        <td 
-                          onClick={(e) => handleElementClick(e, bSpecs.id, `spec-val-${spec.id}`, 'table-cell', `Value: ${spec.key}`, spec.value, { itemId: spec.id, subKey: 'value' })}
-                          className={`p-1.5 text-slate-800 ${getClickableClass(bSpecs.id, `spec-val-${spec.id}`)}`}
                         >
                           {spec.value}
                         </td>
@@ -528,7 +493,12 @@ export const DocumentPDFView: React.FC<DocumentPDFViewProps> = ({
                 )}
                 {renderCustomContentElements(bSpecs)}
               </div>
+            </div>
+          )}
 
+          {/* Page 2 */}
+          {pageNumber === 2 && (
+            <div className="space-y-4">
               {/* 3.2 Packaging Contents */}
               <div className="pt-2">
                 <h3 
@@ -595,7 +565,7 @@ export const DocumentPDFView: React.FC<DocumentPDFViewProps> = ({
                             key={cv.id}
                             className={`p-3 text-center align-middle w-1/3 ${idx < arr.length - 1 ? 'border-r border-black' : ''}`}
                           >
-                            <div className="flex justify-center items-center h-28 max-w-36 mx-auto">
+                            <div className="flex justify-center items-center h-28 max-w-36 mx-auto" data-docx-capture={`variant-${cv.id}`}>
                               <EarbudsCaseMockup
                                 name={cv.name}
                                 colorHex={cv.colorHex}
@@ -645,39 +615,7 @@ export const DocumentPDFView: React.FC<DocumentPDFViewProps> = ({
                   </tr>
                 </thead>
                 <tbody>
-                  {(bFunctionalities.content.functionalities || []).slice(0, 11).map(fn => (
-                    <tr key={fn.id} className="border-b border-black last:border-b-0">
-                      <td 
-                        onClick={(e) => handleElementClick(e, bFunctionalities.id, `fn-name-${fn.id}`, 'heading', `Function: ${fn.functionName}`, fn.functionName, { isBold: true, itemId: fn.id, subKey: 'functionName' })}
-                        className={`p-1.5 font-bold border-r border-black align-top ${getClickableClass(bFunctionalities.id, `fn-name-${fn.id}`)}`}
-                      >
-                        {fn.functionName}
-                      </td>
-                      <td 
-                        onClick={(e) => handleElementClick(e, bFunctionalities.id, `fn-proc-${fn.id}`, 'paragraph', `Process for ${fn.functionName}`, fn.process, { itemId: fn.id, subKey: 'process' })}
-                        className={`p-1.5 text-slate-800 whitespace-pre-line leading-relaxed ${getClickableClass(bFunctionalities.id, `fn-proc-${fn.id}`)}`}
-                      >
-                        {fn.process}
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
-          )}
-
-          {/* Page 4 */}
-          {pageNumber === 4 && (
-            <div className="space-y-4">
-              <table className="w-full border border-black text-xs border-collapse">
-                <thead>
-                  <tr className="border-b border-black">
-                    <th className="p-1.5 border-r border-black font-bold text-left w-1/4">Function</th>
-                    <th className="p-1.5 font-bold text-left">Process</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {(bFunctionalities.content.functionalities || []).slice(11).map(fn => (
+                  {(bFunctionalities.content.functionalities || []).map(fn => (
                     <tr key={fn.id} className="border-b border-black last:border-b-0">
                       <td 
                         onClick={(e) => handleElementClick(e, bFunctionalities.id, `fn-name-${fn.id}`, 'heading', `Function: ${fn.functionName}`, fn.functionName, { isBold: true, itemId: fn.id, subKey: 'functionName' })}
@@ -699,8 +637,8 @@ export const DocumentPDFView: React.FC<DocumentPDFViewProps> = ({
             </div>
           )}
 
-          {/* Page 5 */}
-          {pageNumber === 5 && (
+          {/* Page 4 */}
+          {pageNumber === 4 && (
             <div className="space-y-4">
               <h3 
                 onClick={(e) => handleElementClick(e, bLed.id, 'title', 'title', '3.5 Product LED Indications', bLed.title, { isBold: true })}
@@ -780,8 +718,8 @@ export const DocumentPDFView: React.FC<DocumentPDFViewProps> = ({
             </div>
           )}
 
-          {/* Page 6 */}
-          {pageNumber === 6 && (
+          {/* Page 5 */}
+          {pageNumber === 5 && (
             <div className="space-y-4">
               {/* 3.5.3 Factory Reset LED */}
               <div>
@@ -897,8 +835,8 @@ export const DocumentPDFView: React.FC<DocumentPDFViewProps> = ({
             </div>
           )}
 
-          {/* Page 7: Hearables App Screenshots */}
-          {pageNumber === 7 && (
+          {/* Page 6: Hearables App Screenshots */}
+          {pageNumber === 6 && (
             <div className="space-y-4">
               <h2 
                 onClick={(e) => handleElementClick(e, bHearables.id, 'title', 'title', `${bHearables.sectionNumber} Hearables App`, bHearables.title, { isBold: true })}
@@ -929,7 +867,7 @@ export const DocumentPDFView: React.FC<DocumentPDFViewProps> = ({
                           key={tab.id}
                           className={`p-3 text-center align-top bg-white ${idx < (bHearables.content.hearablesAppTabs || []).length - 1 ? 'border-r border-black' : ''}`}
                         >
-                          <div className="flex justify-center items-center w-full py-1">
+                          <div className="flex justify-center items-center w-full py-1" data-docx-capture={`hearables-tab-${tab.id}`}>
                             <HearablesAppScreenMockup tabType={tab.mockupType} title={tab.tabName} imageUrl={tab.imageUrl} />
                           </div>
                         </td>
@@ -941,8 +879,8 @@ export const DocumentPDFView: React.FC<DocumentPDFViewProps> = ({
             </div>
           )}
 
-          {/* Page 8: App Guide Table Part 1 */}
-          {pageNumber === 8 && (
+          {/* Page 7: Hearables App Guide */}
+          {pageNumber === 7 && (
             <div className="space-y-4">
               <table className="w-full border border-black text-xs border-collapse">
                 <thead>
@@ -952,71 +890,7 @@ export const DocumentPDFView: React.FC<DocumentPDFViewProps> = ({
                   </tr>
                 </thead>
                 <tbody>
-                  {(bHearables.content.hearablesGuideSteps || []).slice(0, 5).map(step => (
-                    <tr key={step.id} className="border-b border-black last:border-b-0">
-                      <td 
-                        onClick={(e) => handleElementClick(e, bHearables.id, `app-fn-${step.id}`, 'heading', `App Step: ${step.functionName}`, step.functionName, { isBold: true, itemId: step.id, subKey: 'functionName' })}
-                        className={`p-1.5 font-bold border-r border-black align-top ${getClickableClass(bHearables.id, `app-fn-${step.id}`)}`}
-                      >
-                        {step.functionName}
-                      </td>
-                      <td 
-                        onClick={(e) => handleElementClick(e, bHearables.id, `app-proc-${step.id}`, 'paragraph', `Process: ${step.functionName}`, step.process, { itemId: step.id, subKey: 'process' })}
-                        className={`p-1.5 text-slate-800 whitespace-pre-line leading-relaxed ${getClickableClass(bHearables.id, `app-proc-${step.id}`)}`}
-                      >
-                        {step.process}
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
-          )}
-
-          {/* Page 9: App Guide Table Part 2 */}
-          {pageNumber === 9 && (
-            <div className="space-y-4">
-              <table className="w-full border border-black text-xs border-collapse">
-                <thead>
-                  <tr className="border-b border-black">
-                    <th className="p-1.5 border-r border-black font-bold text-left bg-slate-100 text-slate-900 w-1/4">Function</th>
-                    <th className="p-1.5 font-bold text-left bg-slate-100 text-slate-900">Process</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {(bHearables.content.hearablesGuideSteps || []).slice(5, 6).map(step => (
-                    <tr key={step.id} className="border-b border-black last:border-b-0">
-                      <td 
-                        onClick={(e) => handleElementClick(e, bHearables.id, `app-fn-${step.id}`, 'heading', `App Step: ${step.functionName}`, step.functionName, { isBold: true, itemId: step.id, subKey: 'functionName' })}
-                        className={`p-1.5 font-bold border-r border-black align-top ${getClickableClass(bHearables.id, `app-fn-${step.id}`)}`}
-                      >
-                        {step.functionName}
-                      </td>
-                      <td 
-                        onClick={(e) => handleElementClick(e, bHearables.id, `app-proc-${step.id}`, 'paragraph', `Process: ${step.functionName}`, step.process, { itemId: step.id, subKey: 'process' })}
-                        className={`p-1.5 text-slate-800 whitespace-pre-line leading-relaxed ${getClickableClass(bHearables.id, `app-proc-${step.id}`)}`}
-                      >
-                        {step.process}
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
-          )}
-
-          {/* Page 10: App Guide Table Part 3 */}
-          {pageNumber === 10 && (
-            <div className="space-y-4">
-              <table className="w-full border border-black text-xs border-collapse">
-                <thead>
-                  <tr className="border-b border-black">
-                    <th className="p-1.5 border-r border-black font-bold text-left bg-slate-100 text-slate-900 w-1/4">Function</th>
-                    <th className="p-1.5 font-bold text-left bg-slate-100 text-slate-900">Process</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {(bHearables.content.hearablesGuideSteps || []).slice(6).map(step => (
+                  {(bHearables.content.hearablesGuideSteps || []).map(step => (
                     <tr key={step.id} className="border-b border-black last:border-b-0">
                       <td 
                         onClick={(e) => handleElementClick(e, bHearables.id, `app-fn-${step.id}`, 'heading', `App Step: ${step.functionName}`, step.functionName, { isBold: true, itemId: step.id, subKey: 'functionName' })}
@@ -1038,8 +912,8 @@ export const DocumentPDFView: React.FC<DocumentPDFViewProps> = ({
             </div>
           )}
 
-          {/* Page 11: Section 5 Diagnostics Start */}
-          {pageNumber === 11 && (
+          {/* Page 8: Section 5 Diagnostics Start */}
+          {pageNumber === 8 && (
             <div className="space-y-4">
               <h2 
                 onClick={(e) => handleElementClick(e, bDiag.id, 'title', 'title', `${bDiag.sectionNumber} Technical Diagnostics Guidelines`, bDiag.title, { isBold: true })}
@@ -1084,7 +958,7 @@ export const DocumentPDFView: React.FC<DocumentPDFViewProps> = ({
                     </tr>
                   </thead>
                   <tbody>
-                    {(bDiag.content.troubleshootingItems || []).slice(0, 1).map(tb => (
+                    {(bDiag.content.troubleshootingItems || []).map(tb => (
                       <tr key={tb.id} className="border-b border-black last:border-b-0">
                         <td 
                           onClick={(e) => handleElementClick(e, bDiag.id, `tb-issue-${tb.id}`, 'heading', `Issue: ${tb.issue}`, tb.issue, { isBold: true, itemId: tb.id, subKey: 'issue' })}
@@ -1111,288 +985,13 @@ export const DocumentPDFView: React.FC<DocumentPDFViewProps> = ({
                   </tbody>
                 </table>
               </div>
-            </div>
-          )}
-
-          {/* Page 12: FAQs Part 2 */}
-          {pageNumber === 12 && (
-            <div className="space-y-4">
-              <table className="w-full border border-black text-xs border-collapse">
-                <thead>
-                  <tr className="border-b border-black font-bold bg-white">
-                    <th className="p-1.5 border-r border-black font-bold text-left w-1/4 text-black">Issues</th>
-                    <th className="p-1.5 border-r border-black font-bold text-left w-1/2 text-black">Instructions</th>
-                    <th className="p-1.5 font-bold text-left w-1/4 text-black">Final Resolution</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {(bDiag.content.troubleshootingItems || []).slice(1, 3).map(tb => (
-                    <tr key={tb.id} className="border-b border-black last:border-b-0">
-                      <td 
-                        onClick={(e) => handleElementClick(e, bDiag.id, `tb-issue-${tb.id}`, 'heading', `Issue: ${tb.issue}`, tb.issue, { isBold: true, itemId: tb.id, subKey: 'issue' })}
-                        className={`p-1.5 font-bold border-r border-black align-top text-black ${getClickableClass(bDiag.id, `tb-issue-${tb.id}`)}`}
-                      >
-                        {tb.issue}
-                      </td>
-                      <td className="p-1.5 text-black border-r border-black align-top">
-                        <ul className="list-disc list-inside space-y-1">
-                          {tb.instructions.map((inst, idx) => (
-                            <li key={idx}><span>{inst}</span></li>
-                          ))}
-                        </ul>
-                        {tb.appDiagnosticsNote && (
-                          <p className="mt-2 text-black font-normal">
-                            <span className="bg-[#FFFF00] text-black font-bold px-1 py-0.5 inline-block mr-1">App -</span>
-                            {tb.appDiagnosticsNote}
-                          </p>
-                        )}
-                      </td>
-                      <td className="p-1.5 font-medium align-top text-black">{tb.finalResolution}</td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
-          )}
-
-          {/* Page 13: FAQs Part 3 */}
-          {pageNumber === 13 && (
-            <div className="space-y-4">
-              <table className="w-full border border-black text-xs border-collapse">
-                <thead>
-                  <tr className="border-b border-black font-bold bg-white">
-                    <th className="p-1.5 border-r border-black font-bold text-left w-1/4 text-black">Issues</th>
-                    <th className="p-1.5 border-r border-black font-bold text-left w-1/2 text-black">Instructions</th>
-                    <th className="p-1.5 font-bold text-left w-1/4 text-black">Final Resolution</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {(bDiag.content.troubleshootingItems || []).slice(3, 6).map(tb => (
-                    <tr key={tb.id} className="border-b border-black last:border-b-0">
-                      <td 
-                        onClick={(e) => handleElementClick(e, bDiag.id, `tb-issue-${tb.id}`, 'heading', `Issue: ${tb.issue}`, tb.issue, { isBold: true, itemId: tb.id, subKey: 'issue' })}
-                        className={`p-1.5 font-bold border-r border-black align-top text-black ${getClickableClass(bDiag.id, `tb-issue-${tb.id}`)}`}
-                      >
-                        {tb.issue}
-                      </td>
-                      <td className="p-1.5 text-black border-r border-black align-top">
-                        <ul className="list-disc list-inside space-y-1">
-                          {tb.instructions.map((inst, idx) => (
-                            <li key={idx}><span>{inst}</span></li>
-                          ))}
-                        </ul>
-                        {tb.appDiagnosticsNote && (
-                          <p className="mt-2 text-black font-normal">
-                            <span className="bg-[#FFFF00] text-black font-bold px-1 py-0.5 inline-block mr-1">App -</span>
-                            {tb.appDiagnosticsNote}
-                          </p>
-                        )}
-                      </td>
-                      <td className="p-1.5 font-medium align-top text-black">{tb.finalResolution}</td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
-          )}
-
-          {/* Page 14: FAQs Part 4 */}
-          {pageNumber === 14 && (
-            <div className="space-y-4">
-              <table className="w-full border border-black text-xs border-collapse">
-                <thead>
-                  <tr className="border-b border-black font-bold bg-white">
-                    <th className="p-1.5 border-r border-black font-bold text-left w-1/4 text-black">Issues</th>
-                    <th className="p-1.5 border-r border-black font-bold text-left w-1/2 text-black">Instructions</th>
-                    <th className="p-1.5 font-bold text-left w-1/4 text-black">Final Resolution</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {(bDiag.content.troubleshootingItems || []).slice(6, 8).map(tb => (
-                    <tr key={tb.id} className="border-b border-black last:border-b-0">
-                      <td 
-                        onClick={(e) => handleElementClick(e, bDiag.id, `tb-issue-${tb.id}`, 'heading', `Issue: ${tb.issue}`, tb.issue, { isBold: true, itemId: tb.id, subKey: 'issue' })}
-                        className={`p-1.5 font-bold border-r border-black align-top text-black ${getClickableClass(bDiag.id, `tb-issue-${tb.id}`)}`}
-                      >
-                        {tb.issue}
-                      </td>
-                      <td className="p-1.5 text-black border-r border-black align-top">
-                        <ul className="list-disc list-inside space-y-1">
-                          {tb.instructions.map((inst, idx) => (
-                            <li key={idx}><span>{inst}</span></li>
-                          ))}
-                        </ul>
-                        {tb.appDiagnosticsNote && (
-                          <p className="mt-2 text-black font-normal">
-                            <span className="bg-[#FFFF00] text-black font-bold px-1 py-0.5 inline-block mr-1">App -</span>
-                            {tb.appDiagnosticsNote}
-                          </p>
-                        )}
-                      </td>
-                      <td className="p-1.5 font-medium align-top text-black">{tb.finalResolution}</td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
-          )}
-
-          {/* Page 15: FAQs Part 5 */}
-          {pageNumber === 15 && (
-            <div className="space-y-4">
-              <table className="w-full border border-black text-xs border-collapse">
-                <thead>
-                  <tr className="border-b border-black font-bold bg-white">
-                    <th className="p-1.5 border-r border-black font-bold text-left w-1/4 text-black">Issues</th>
-                    <th className="p-1.5 border-r border-black font-bold text-left w-1/2 text-black">Instructions</th>
-                    <th className="p-1.5 font-bold text-left w-1/4 text-black">Final Resolution</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {(bDiag.content.troubleshootingItems || []).slice(8, 13).map(tb => (
-                    <tr key={tb.id} className="border-b border-black last:border-b-0">
-                      <td 
-                        onClick={(e) => handleElementClick(e, bDiag.id, `tb-issue-${tb.id}`, 'heading', `Issue: ${tb.issue}`, tb.issue, { isBold: true, itemId: tb.id, subKey: 'issue' })}
-                        className={`p-1.5 font-bold border-r border-black align-top text-black ${getClickableClass(bDiag.id, `tb-issue-${tb.id}`)}`}
-                      >
-                        {tb.issue}
-                      </td>
-                      <td className="p-1.5 text-black border-r border-black align-top">
-                        <ul className="list-disc list-inside space-y-1">
-                          {tb.instructions.map((inst, idx) => (
-                            <li key={idx}><span>{inst}</span></li>
-                          ))}
-                        </ul>
-                        {tb.appDiagnosticsNote && (
-                          <p className="mt-2 text-black font-normal">
-                            <span className="bg-[#FFFF00] text-black font-bold px-1 py-0.5 inline-block mr-1">App -</span>
-                            {tb.appDiagnosticsNote}
-                          </p>
-                        )}
-                      </td>
-                      <td className="p-1.5 font-medium align-top text-black">{tb.finalResolution}</td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
-          )}
-
-          {/* Page 16: FAQs Part 6 */}
-          {pageNumber === 16 && (
-            <div className="space-y-4">
-              <table className="w-full border border-black text-xs border-collapse">
-                <thead>
-                  <tr className="border-b border-black font-bold bg-white">
-                    <th className="p-1.5 border-r border-black font-bold text-left w-1/4 text-black">Issues</th>
-                    <th className="p-1.5 border-r border-black font-bold text-left w-1/2 text-black">Instructions</th>
-                    <th className="p-1.5 font-bold text-left w-1/4 text-black">Final Resolution</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {(bDiag.content.troubleshootingItems || []).slice(13, 18).map(tb => (
-                    <tr key={tb.id} className="border-b border-black last:border-b-0">
-                      <td 
-                        onClick={(e) => handleElementClick(e, bDiag.id, `tb-issue-${tb.id}`, 'heading', `Issue: ${tb.issue}`, tb.issue, { isBold: true, itemId: tb.id, subKey: 'issue' })}
-                        className={`p-1.5 font-bold border-r border-black align-top text-black ${getClickableClass(bDiag.id, `tb-issue-${tb.id}`)}`}
-                      >
-                        {tb.issue}
-                      </td>
-                      <td className="p-1.5 text-black border-r border-black align-top">
-                        <ul className="list-disc list-inside space-y-1">
-                          {tb.instructions.map((inst, idx) => (
-                            <li key={idx}><span>{inst}</span></li>
-                          ))}
-                        </ul>
-                        {tb.appDiagnosticsNote && (
-                          <p className="mt-2 text-black font-normal">
-                            <span className="bg-[#FFFF00] text-black font-bold px-1 py-0.5 inline-block mr-1">App -</span>
-                            {tb.appDiagnosticsNote}
-                          </p>
-                        )}
-                      </td>
-                      <td className="p-1.5 font-medium align-top text-black">{tb.finalResolution}</td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
-          )}
-
-          {/* Page 17: FAQs Part 7 */}
-          {pageNumber === 17 && (
-            <div className="space-y-4">
-              <table className="w-full border border-black text-xs border-collapse">
-                <thead>
-                  <tr className="border-b border-black font-bold bg-white">
-                    <th className="p-1.5 border-r border-black font-bold text-left w-1/4 text-black">Issues</th>
-                    <th className="p-1.5 border-r border-black font-bold text-left w-1/2 text-black">Instructions</th>
-                    <th className="p-1.5 font-bold text-left w-1/4 text-black">Final Resolution</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {(bDiag.content.troubleshootingItems || []).slice(18, 25).map(tb => (
-                    <tr key={tb.id} className="border-b border-black last:border-b-0">
-                      <td 
-                        onClick={(e) => handleElementClick(e, bDiag.id, `tb-issue-${tb.id}`, 'heading', `Issue: ${tb.issue}`, tb.issue, { isBold: true, itemId: tb.id, subKey: 'issue' })}
-                        className={`p-1.5 font-bold border-r border-black align-top text-black ${getClickableClass(bDiag.id, `tb-issue-${tb.id}`)}`}
-                      >
-                        {tb.issue}
-                      </td>
-                      <td className="p-1.5 text-black border-r border-black align-top">
-                        <ul className="list-disc list-inside space-y-1">
-                          {tb.instructions.map((inst, idx) => (
-                            <li key={idx}><span>{inst}</span></li>
-                          ))}
-                        </ul>
-                        {tb.appDiagnosticsNote && (
-                          <p className="mt-2 text-black font-normal">
-                            <span className="bg-[#FFFF00] text-black font-bold px-1 py-0.5 inline-block mr-1">App -</span>
-                            {tb.appDiagnosticsNote}
-                          </p>
-                        )}
-                      </td>
-                      <td className="p-1.5 font-medium align-top text-black">{tb.finalResolution}</td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
-          )}
-
-          {/* Page 18: FAQs Part 8 + Section 6 + Section 7 */}
-          {pageNumber === 18 && (
-            <div className="space-y-4">
-              <table className="w-full border border-black text-xs border-collapse">
-                <thead>
-                  <tr className="border-b border-black">
-                    <th className="p-1.5 border-r border-black font-bold text-left w-1/4">Issues</th>
-                    <th className="p-1.5 border-r border-black font-bold text-left w-1/2">Instructions</th>
-                    <th className="p-1.5 font-bold text-left w-1/4">Final Resolution</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {(bDiag.content.troubleshootingItems || []).slice(25).map(tb => (
-                    <tr key={tb.id} className="border-b border-black last:border-b-0">
-                      <td 
-                        onClick={(e) => handleElementClick(e, bDiag.id, `tb-issue-${tb.id}`, 'heading', `Issue: ${tb.issue}`, tb.issue, { isBold: true, itemId: tb.id, subKey: 'issue' })}
-                        className={`p-1.5 font-bold border-r border-black align-top ${getClickableClass(bDiag.id, `tb-issue-${tb.id}`)}`}
-                      >
-                        {tb.issue}
-                      </td>
-                      <td className="p-1.5 text-slate-800 border-r border-black align-top">
-                        <ul className="list-disc list-inside space-y-1">
-                          {tb.instructions.map((inst, idx) => (
-                            <li key={idx}><span>{inst}</span></li>
-                          ))}
-                        </ul>
-                      </td>
-                      <td className="p-1.5 font-medium align-top">{tb.finalResolution}</td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
               {renderCustomContentElements(bDiag)}
+            </div>
+          )}
+
+          {/* Page 9: Section 6 + Section 7 */}
+          {pageNumber === 9 && (
+            <div className="space-y-4">
 
               {/* Section 6 Return Codes — shown only when the selected product defines return codes */}
               {(bCodes.content.returnCodes || []).length > 0 && (
@@ -1536,7 +1135,7 @@ export const DocumentPDFView: React.FC<DocumentPDFViewProps> = ({
             }`}
           >
             <FileText className="w-3.5 h-3.5" />
-            18-Page Exact PDF Format
+            {totalPages}-Page Exact PDF Format
           </button>
           <button
             onClick={() => setPageLayoutMode('continuous')}
@@ -1613,7 +1212,7 @@ export const DocumentPDFView: React.FC<DocumentPDFViewProps> = ({
       ) : (
         /* RENDER IN CONTINUOUS FLOW MODE */
         <div 
-          className="pdf-page bg-white text-slate-900 border border-gray-300 shadow-md w-[210mm] max-w-full min-h-[297mm] p-6 sm:p-[1in] relative box-border rounded-xs print:shadow-none print:border-none print:p-0 print:max-w-none print:w-[210mm] print:min-h-[297mm]"
+          className="pdf-page shrink-0 grow-0 h-auto bg-white text-slate-900 border border-gray-300 shadow-md w-[210mm] max-w-full min-h-[297mm] p-6 sm:p-[1in] relative box-border rounded-xs print:shadow-none print:border-none print:p-0 print:max-w-none print:w-[210mm] print:min-h-[297mm]"
           style={{
             transform: scale !== 1 ? `scale(${scale})` : undefined,
             transformOrigin: 'top center',
@@ -1900,7 +1499,7 @@ export const DocumentPDFView: React.FC<DocumentPDFViewProps> = ({
                                     onClick={(e) => handleElementClick(e, block.id, `variant-card-${variant.id}`, 'table-cell', `Variant Photo (${variant.name})`, variant.name, { itemId: variant.id, subKey: 'name' })}
                                     className={`p-3 text-center border-r border-black last:border-r-0 align-middle ${getClickableClass(block.id, `variant-card-${variant.id}`)}`}
                                   >
-                                    <div className="flex justify-center items-center h-28 max-w-36 mx-auto">
+                                    <div className="flex justify-center items-center h-28 max-w-36 mx-auto" data-docx-capture={`variant-${variant.id}`}>
                                       {variant.imageUrl ? (
                                         <img
                                           src={variant.imageUrl}
@@ -2160,7 +1759,7 @@ export const DocumentPDFView: React.FC<DocumentPDFViewProps> = ({
                                   idx < (block.content.hearablesAppTabs || []).length - 1 ? 'border-r border-black' : ''
                                 }`}
                               >
-                                <div className="flex justify-center items-center w-full py-1">
+                                <div className="flex justify-center items-center w-full py-1" data-docx-capture={`hearables-tab-${tab.id}`}>
                                   <HearablesAppScreenMockup tabType={tab.mockupType} title={tab.tabName} imageUrl={tab.imageUrl} />
                                 </div>
                               </td>

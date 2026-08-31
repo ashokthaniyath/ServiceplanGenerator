@@ -15,8 +15,12 @@ import {
   ImageRun,
 } from 'docx';
 import { saveAs } from 'file-saver';
+import { toPng } from 'html-to-image';
 import { ServicePlanDocument, ServicePlanBlock, AnnexureItem } from '../types';
 import { validateDocumentIsolation } from '../data/defaultPlans';
+
+// Document body font — kept in sync with the on-screen preview (.pdf-document-root in index.css)
+const DOC_FONT = 'Open Sans';
 
 // Total usable table width inside A4 with 1" margins ≈ 9026 dxa. Use 9000 for safety.
 const TABLE_TOTAL_WIDTH_DXA = 9000;
@@ -79,7 +83,7 @@ function cellParagraphs(text: string, opts: { bold?: boolean; size?: number } = 
             bold: opts.bold ?? false,
             color: '000000',
             size: opts.size ?? 19, // 9.5pt
-            font: 'Calibri',
+            font: DOC_FONT,
           }),
         ],
       })
@@ -108,7 +112,7 @@ function createHeaderCell(text: string, widthPercent?: number): TableCell {
             bold: true,
             color: '000000',
             size: 20, // 10pt
-            font: 'Calibri',
+            font: DOC_FONT,
           }),
         ],
       }),
@@ -168,6 +172,21 @@ function imageToPngBytes(src: string): Promise<{ bytes: Uint8Array; width: numbe
   });
 }
 
+// Rasterize a live preview DOM node (visual mockup) to a PNG data URL so the DOCX
+// embeds exactly what the on-screen preview shows. Returns null if the node is not
+// currently rendered (e.g. preview closed) so callers can fall back to text.
+async function captureDomNodeAsPng(selector: string): Promise<string | null> {
+  try {
+    if (typeof window === 'undefined') return null;
+    const node = window.document.querySelector(selector) as HTMLElement | null;
+    if (!node || node.offsetWidth === 0) return null;
+    return await toPng(node, { pixelRatio: 2, cacheBust: true });
+  } catch (err) {
+    console.warn(`DOCX mockup capture failed for ${selector}:`, err);
+    return null;
+  }
+}
+
 // Build a centered image paragraph (with optional caption) from any image source.
 async function buildImageParagraphs(src: string, caption?: string, maxWidth = 480): Promise<Paragraph[]> {
   const decoded = await imageToPngBytes(src);
@@ -198,7 +217,7 @@ async function buildImageParagraphs(src: string, caption?: string, maxWidth = 48
         alignment: AlignmentType.CENTER,
         spacing: { after: 140 },
         children: [
-          new TextRun({ text: caption, italics: true, size: 18, color: '64748B', font: 'Calibri' }),
+          new TextRun({ text: caption, italics: true, size: 18, color: '64748B', font: DOC_FONT }),
         ],
       })
     );
@@ -220,7 +239,7 @@ async function appendCustomContentElements(children: (Paragraph | Table)[], bloc
               text: el.text || '',
               bold: true,
               size: 22,
-              font: 'Calibri',
+              font: DOC_FONT,
               color: '1E293B',
             }),
           ],
@@ -235,7 +254,7 @@ async function appendCustomContentElements(children: (Paragraph | Table)[], bloc
               text: el.text || '',
               bold: el.isBold ?? false,
               size: 20,
-              font: 'Calibri',
+              font: DOC_FONT,
             }),
           ],
         })
@@ -251,7 +270,7 @@ async function appendCustomContentElements(children: (Paragraph | Table)[], bloc
               new TextRun({
                 text: el.listType === 'numbered' ? `${idx + 1}. ${item}` : item,
                 size: 20,
-                font: 'Calibri',
+                font: DOC_FONT,
               }),
             ],
           })
@@ -267,12 +286,12 @@ async function appendCustomContentElements(children: (Paragraph | Table)[], bloc
               bold: true,
               color: el.noteType === 'danger' ? 'DC2626' : 'D97706',
               size: 20,
-              font: 'Calibri',
+              font: DOC_FONT,
             }),
             new TextRun({
               text: el.text || '',
               size: 20,
-              font: 'Calibri',
+              font: DOC_FONT,
             }),
           ],
         })
@@ -310,7 +329,7 @@ async function appendCustomContentElements(children: (Paragraph | Table)[], bloc
                 bold: true,
                 size: 20,
                 color: '1E293B',
-                font: 'Calibri',
+                font: DOC_FONT,
               }),
             ],
           })
@@ -366,7 +385,7 @@ export async function exportDocumentToDocx(doc: ServicePlanDocument): Promise<vo
             underline: { type: 'single' as any, color: corporateBlue },
             size: 26,
             color: corporateBlue,
-            font: 'Calibri',
+            font: DOC_FONT,
           }),
         ],
       })
@@ -377,8 +396,8 @@ export async function exportDocumentToDocx(doc: ServicePlanDocument): Promise<vo
         new Paragraph({
           spacing: { after: 60 },
           children: [
-            new TextRun({ text: 'Objective: ', bold: true, size: 20, font: 'Calibri', color: '000000' }),
-            new TextRun({ text: bHeader.content.objective, size: 20, font: 'Calibri', color: '000000' }),
+            new TextRun({ text: 'Objective: ', bold: true, size: 20, font: DOC_FONT, color: '000000' }),
+            new TextRun({ text: bHeader.content.objective, size: 20, font: DOC_FONT, color: '000000' }),
           ],
         })
       );
@@ -389,8 +408,8 @@ export async function exportDocumentToDocx(doc: ServicePlanDocument): Promise<vo
         new Paragraph({
           spacing: { after: 100 },
           children: [
-            new TextRun({ text: 'Document Owner: ', bold: true, size: 20, font: 'Calibri', color: '000000' }),
-            new TextRun({ text: bHeader.content.documentOwner, size: 20, font: 'Calibri', color: '000000' }),
+            new TextRun({ text: 'Document Owner: ', bold: true, size: 20, font: DOC_FONT, color: '000000' }),
+            new TextRun({ text: bHeader.content.documentOwner, size: 20, font: DOC_FONT, color: '000000' }),
           ],
         })
       );
@@ -402,8 +421,8 @@ export async function exportDocumentToDocx(doc: ServicePlanDocument): Promise<vo
           new Paragraph({
             spacing: { after: 40 },
             children: [
-              new TextRun({ text: `${idx + 1}. `, bold: true, size: 20, font: 'Calibri', color: '000000' }),
-              new TextRun({ text: f, size: 20, font: 'Calibri', color: '000000' }),
+              new TextRun({ text: `${idx + 1}. `, bold: true, size: 20, font: DOC_FONT, color: '000000' }),
+              new TextRun({ text: f, size: 20, font: DOC_FONT, color: '000000' }),
             ],
           })
         );
@@ -423,7 +442,7 @@ export async function exportDocumentToDocx(doc: ServicePlanDocument): Promise<vo
             bold: true,
             size: 24,
             color: corporateBlue,
-            font: 'Calibri',
+            font: DOC_FONT,
           }),
         ],
       })
@@ -463,7 +482,7 @@ export async function exportDocumentToDocx(doc: ServicePlanDocument): Promise<vo
           bold: true,
           size: 24,
           color: corporateBlue,
-          font: 'Calibri',
+          font: DOC_FONT,
         }),
       ],
     })
@@ -480,7 +499,7 @@ export async function exportDocumentToDocx(doc: ServicePlanDocument): Promise<vo
             bold: true,
             size: 22,
             color: '000000',
-            font: 'Calibri',
+            font: DOC_FONT,
           }),
         ],
       })
@@ -512,12 +531,12 @@ export async function exportDocumentToDocx(doc: ServicePlanDocument): Promise<vo
           new Paragraph({
             spacing: { before: 80, after: 140 },
             children: [
-              new TextRun({ text: 'Note: ', bold: true, color: '000000', size: 19, font: 'Calibri' }),
+              new TextRun({ text: 'Note: ', bold: true, color: '000000', size: 19, font: DOC_FONT }),
               new TextRun({
                 text: bSpecs.customization.noteText,
                 color: '000000',
                 size: 19,
-                font: 'Calibri',
+                font: DOC_FONT,
               }),
             ],
           })
@@ -537,7 +556,7 @@ export async function exportDocumentToDocx(doc: ServicePlanDocument): Promise<vo
             bold: true,
             size: 22,
             color: '000000',
-            font: 'Calibri',
+            font: DOC_FONT,
           }),
         ],
       })
@@ -569,31 +588,62 @@ export async function exportDocumentToDocx(doc: ServicePlanDocument): Promise<vo
             bold: true,
             size: 22,
             color: '000000',
-            font: 'Calibri',
+            font: DOC_FONT,
           }),
         ],
       })
     );
 
-    const variantsList = (bVariants.content.colourVariants || []).map(cv => cv.name);
+    const variants = bVariants.content.colourVariants || [];
 
-    const rows = [
-      new TableRow({
-        tableHeader: true,
-        children: [
-          createHeaderCell('Product Name', 35),
-          createHeaderCell('Colour Variants', 65),
-        ],
-      }),
-      new TableRow({
-        children: [
-          createBodyCell(doc.productName, true, 35),
-          createBodyCell(variantsList.join('\n'), false, 65),
-        ],
-      }),
-    ];
+    // Mirror the preview: rows of up to 3 variants, each with its visual mockup above its name.
+    const variantRows: TableRow[] = [];
+    for (let i = 0; i < variants.length; i += 3) {
+      const chunk = variants.slice(i, i + 3);
+      const colPct = Math.floor(100 / chunk.length);
+      const imgMaxPx = Math.max(100, Math.floor(pctToDxa(colPct) / 15) - 32);
+      const photoCells: TableCell[] = [];
+      const nameCells: TableCell[] = [];
+      for (const cv of chunk) {
+        let paras: Paragraph[] = [];
+        const captured = await captureDomNodeAsPng(`[data-docx-capture="variant-${cv.id}"]`);
+        if (captured) paras = await buildImageParagraphs(captured, undefined, imgMaxPx);
+        if (paras.length === 0 && cv.imageUrl) paras = await buildImageParagraphs(cv.imageUrl, undefined, imgMaxPx);
+        if (paras.length === 0) {
+          paras = [
+            new Paragraph({
+              alignment: AlignmentType.CENTER,
+              children: [new TextRun({ text: cv.name, size: 19, font: DOC_FONT, color: '000000' })],
+            }),
+          ];
+        }
+        photoCells.push(
+          new TableCell({
+            width: { size: pctToDxa(colPct), type: WidthType.DXA },
+            borders: CELL_BORDERS,
+            margins: { top: 90, bottom: 90, left: 140, right: 140 },
+            children: paras,
+          })
+        );
+        nameCells.push(
+          new TableCell({
+            width: { size: pctToDxa(colPct), type: WidthType.DXA },
+            borders: CELL_BORDERS,
+            margins: { top: 90, bottom: 90, left: 140, right: 140 },
+            children: [
+              new Paragraph({
+                alignment: AlignmentType.CENTER,
+                children: [new TextRun({ text: cv.name, bold: true, size: 19, font: DOC_FONT, color: '000000' })],
+              }),
+            ],
+          })
+        );
+      }
+      variantRows.push(new TableRow({ children: photoCells }), new TableRow({ children: nameCells }));
+    }
 
-    docChildren.push(buildTable([35, 65], rows));
+    const gridCols = Math.min(variants.length, 3) || 1;
+    docChildren.push(buildTable(Array.from({ length: gridCols }, () => Math.floor(100 / gridCols)), variantRows));
     docChildren.push(new Paragraph({ spacing: { after: 140 }, children: [] }));
   }
 
@@ -608,7 +658,7 @@ export async function exportDocumentToDocx(doc: ServicePlanDocument): Promise<vo
             bold: true,
             size: 22,
             color: '000000',
-            font: 'Calibri',
+            font: DOC_FONT,
           }),
         ],
       })
@@ -649,7 +699,7 @@ export async function exportDocumentToDocx(doc: ServicePlanDocument): Promise<vo
             bold: true,
             size: 22,
             color: '000000',
-            font: 'Calibri',
+            font: DOC_FONT,
           }),
         ],
       })
@@ -661,7 +711,7 @@ export async function exportDocumentToDocx(doc: ServicePlanDocument): Promise<vo
         new Paragraph({
           spacing: { before: 80, after: 60 },
           children: [
-            new TextRun({ text: '3.5.1 Remaining Case Battery LED Indications', bold: true, size: 20, font: 'Calibri', color: '000000' }),
+            new TextRun({ text: '3.5.1 Remaining Case Battery LED Indications', bold: true, size: 20, font: DOC_FONT, color: '000000' }),
           ],
         })
       );
@@ -696,7 +746,7 @@ export async function exportDocumentToDocx(doc: ServicePlanDocument): Promise<vo
         new Paragraph({
           spacing: { before: 80, after: 60 },
           children: [
-            new TextRun({ text: '3.5.2 Earbuds LED Indications', bold: true, size: 20, font: 'Calibri', color: '000000' }),
+            new TextRun({ text: '3.5.2 Earbuds LED Indications', bold: true, size: 20, font: DOC_FONT, color: '000000' }),
           ],
         })
       );
@@ -729,7 +779,7 @@ export async function exportDocumentToDocx(doc: ServicePlanDocument): Promise<vo
         new Paragraph({
           spacing: { before: 80, after: 60 },
           children: [
-            new TextRun({ text: '3.5.3 Factory Reset LED Indications', bold: true, size: 20, font: 'Calibri', color: '000000' }),
+            new TextRun({ text: '3.5.3 Factory Reset LED Indications', bold: true, size: 20, font: DOC_FONT, color: '000000' }),
           ],
         })
       );
@@ -761,7 +811,7 @@ export async function exportDocumentToDocx(doc: ServicePlanDocument): Promise<vo
             bold: true,
             size: 22,
             color: '000000',
-            font: 'Calibri',
+            font: DOC_FONT,
           }),
         ],
       })
@@ -814,7 +864,7 @@ export async function exportDocumentToDocx(doc: ServicePlanDocument): Promise<vo
               bold: true,
               size: 22,
               color: '000000',
-              font: 'Calibri',
+              font: DOC_FONT,
             }),
           ],
         })
@@ -862,7 +912,7 @@ export async function exportDocumentToDocx(doc: ServicePlanDocument): Promise<vo
             bold: true,
             size: 24,
             color: corporateBlue,
-            font: 'Calibri',
+            font: DOC_FONT,
           }),
         ],
       })
@@ -876,7 +926,7 @@ export async function exportDocumentToDocx(doc: ServicePlanDocument): Promise<vo
           new TextRun({
             text: `Device Classification: ${doc.deviceType}. SDK devices support the full Hearables app feature set (EQ, touch remapping, OTA updates); Non-SDK devices support the reduced Sound / System app set only.`,
             size: 20,
-            font: 'Calibri',
+            font: DOC_FONT,
             color: '000000',
             italics: true,
           }),
@@ -905,14 +955,21 @@ export async function exportDocumentToDocx(doc: ServicePlanDocument): Promise<vo
       if (imgUrl) {
         paras = await buildImageParagraphs(imgUrl, undefined, tabImgMaxPx);
       }
-      // 2) Otherwise render a clean textual summary (never cropped, always product/mode-correct).
+      // 2) Snapshot the live preview mockup so the DOCX matches the preview exactly.
+      if (paras.length === 0) {
+        const capturedMockup = await captureDomNodeAsPng(`[data-docx-capture="hearables-tab-${tab.id}"]`);
+        if (capturedMockup) {
+          paras = await buildImageParagraphs(capturedMockup, undefined, tabImgMaxPx);
+        }
+      }
+      // 3) Otherwise render a clean textual summary (never cropped, always product/mode-correct).
       if (paras.length === 0) {
         if (description) {
           paras.push(
             new Paragraph({
               spacing: { after: 60 },
               children: [
-                new TextRun({ text: description, size: 19, font: 'Calibri', color: '000000', italics: true }),
+                new TextRun({ text: description, size: 19, font: DOC_FONT, color: '000000', italics: true }),
               ],
             })
           );
@@ -922,7 +979,7 @@ export async function exportDocumentToDocx(doc: ServicePlanDocument): Promise<vo
             new Paragraph({
               spacing: { after: 30 },
               children: [
-                new TextRun({ text: `• ${feature}`, size: 19, font: 'Calibri', color: '000000' }),
+                new TextRun({ text: `• ${feature}`, size: 19, font: DOC_FONT, color: '000000' }),
               ],
             })
           );
@@ -932,7 +989,7 @@ export async function exportDocumentToDocx(doc: ServicePlanDocument): Promise<vo
             new Paragraph({
               alignment: AlignmentType.CENTER,
               children: [
-                new TextRun({ text: tab.tabName, size: 19, font: 'Calibri', color: '000000' }),
+                new TextRun({ text: tab.tabName, size: 19, font: DOC_FONT, color: '000000' }),
               ],
             })
           );
@@ -994,7 +1051,7 @@ export async function exportDocumentToDocx(doc: ServicePlanDocument): Promise<vo
             bold: true,
             size: 24,
             color: corporateBlue,
-            font: 'Calibri',
+            font: DOC_FONT,
           }),
         ],
       })
@@ -1007,7 +1064,7 @@ export async function exportDocumentToDocx(doc: ServicePlanDocument): Promise<vo
       new Paragraph({
         spacing: { before: 80, after: 60 },
         children: [
-          new TextRun({ text: `${diagNum}.1 Service Channels`, bold: true, size: 22, font: 'Calibri', color: '000000' }),
+          new TextRun({ text: `${diagNum}.1 Service Channels`, bold: true, size: 22, font: DOC_FONT, color: '000000' }),
         ],
       })
     );
@@ -1046,7 +1103,7 @@ export async function exportDocumentToDocx(doc: ServicePlanDocument): Promise<vo
             text: `${diagNum}.2 Probable FAQs, Actionable Instructions and Resolutions for ${doc.productName}`,
             bold: true,
             size: 22,
-            font: 'Calibri',
+            font: DOC_FONT,
             color: '000000',
           }),
         ],
@@ -1068,7 +1125,7 @@ export async function exportDocumentToDocx(doc: ServicePlanDocument): Promise<vo
           const instructionParagraphs: Paragraph[] = tb.instructions.map(inst =>
             new Paragraph({
               children: [
-                new TextRun({ text: `• ${inst}`, size: 19, font: 'Calibri', color: '000000' }),
+                new TextRun({ text: `• ${inst}`, size: 19, font: DOC_FONT, color: '000000' }),
               ],
               spacing: { after: 40 },
             })
@@ -1084,13 +1141,13 @@ export async function exportDocumentToDocx(doc: ServicePlanDocument): Promise<vo
                     bold: true,
                     highlight: 'yellow',
                     size: 19,
-                    font: 'Calibri',
+                    font: DOC_FONT,
                     color: '000000',
                   }),
                   new TextRun({
                     text: tb.appDiagnosticsNote,
                     size: 19,
-                    font: 'Calibri',
+                    font: DOC_FONT,
                     color: '000000',
                   }),
                 ],
@@ -1111,7 +1168,7 @@ export async function exportDocumentToDocx(doc: ServicePlanDocument): Promise<vo
                         text: tb.issue,
                         bold: true,
                         size: 19,
-                        font: 'Calibri',
+                        font: DOC_FONT,
                         color: '000000',
                       }),
                     ],
@@ -1134,7 +1191,7 @@ export async function exportDocumentToDocx(doc: ServicePlanDocument): Promise<vo
                       new TextRun({
                         text: tb.finalResolution,
                         size: 19,
-                        font: 'Calibri',
+                        font: DOC_FONT,
                         color: '000000',
                       }),
                     ],
@@ -1163,7 +1220,7 @@ export async function exportDocumentToDocx(doc: ServicePlanDocument): Promise<vo
             bold: true,
             size: 24,
             color: corporateBlue,
-            font: 'Calibri',
+            font: DOC_FONT,
           }),
         ],
       })
@@ -1183,9 +1240,10 @@ export async function exportDocumentToDocx(doc: ServicePlanDocument): Promise<vo
         new TableRow({
           children: [
             createBodyCell(rc.productDesc, true, 40),
-            createBodyCell(rc.ean, false, 24),
-            createBodyCell(rc.asin, false, 18),
-            createBodyCell(rc.fsn, false, 18),
+            // Empty codes stay blank (no '-' placeholder) to match the preview
+            createBodyCell(rc.ean || ' ', false, 24),
+            createBodyCell(rc.asin || ' ', false, 18),
+            createBodyCell(rc.fsn || ' ', false, 18),
           ],
         })
       ),
@@ -1206,7 +1264,7 @@ export async function exportDocumentToDocx(doc: ServicePlanDocument): Promise<vo
             bold: true,
             size: 24,
             color: corporateBlue,
-            font: 'Calibri',
+            font: DOC_FONT,
           }),
         ],
       })
@@ -1245,7 +1303,7 @@ export async function exportDocumentToDocx(doc: ServicePlanDocument): Promise<vo
         const protocolParagraphs = item.protocols.split('\n').map(line => 
           new Paragraph({
             children: [
-              new TextRun({ text: line, size: 19, font: 'Calibri', color: '000000' }),
+              new TextRun({ text: line, size: 19, font: DOC_FONT, color: '000000' }),
             ],
             spacing: { after: 30 },
           })
@@ -1260,7 +1318,7 @@ export async function exportDocumentToDocx(doc: ServicePlanDocument): Promise<vo
               borders: CELL_BORDERS,
               margins: { top: 90, bottom: 90, left: 140, right: 140 },
               children: protocolParagraphs.length > 0 ? protocolParagraphs : [
-                new Paragraph({ children: [new TextRun({ text: item.protocols, size: 19, font: 'Calibri', color: '000000' })] })
+                new Paragraph({ children: [new TextRun({ text: item.protocols, size: 19, font: DOC_FONT, color: '000000' })] })
               ],
             }),
             createBodyCell(item.resourceLink || 'N/A', false, 25),

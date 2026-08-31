@@ -180,7 +180,7 @@ export const PDFExportModal: React.FC<PDFExportModalProps> = ({
 
       {/* Main Preview Container */}
       <main className="flex-1 overflow-y-auto bg-gray-50 flex justify-center p-0 sm:p-4">
-        <div className="w-full max-w-4xl flex justify-center pb-8">
+        <div className="w-full max-w-4xl flex justify-center items-start h-fit pb-8">
           <DocumentPDFView
             document={document}
             scale={zoomLevel}
