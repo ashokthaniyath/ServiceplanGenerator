@@ -892,37 +892,51 @@ export async function exportDocumentToDocx(doc: ServicePlanDocument): Promise<vo
     // Width available for a tab picture inside its column (dxa → px, minus cell margins)
     const tabImgMaxPx = Math.max(120, Math.floor(pctToDxa(tabWidth) / 15) - 32);
 
-    // Build each tab's body cell: embed the uploaded picture if present, otherwise the app
-    // mockup screenshot (same image shown in the Full Document view), else a text placeholder.
+    // Build each tab's body cell: embed the user-uploaded picture if present, otherwise a
+    // clean, content-accurate summary of the tab (description + feature list). This mirrors
+    // the information shown in the on-screen app mockup for the selected product/mode.
     const tabBodyCells: TableCell[] = [];
     for (const tab of appTabs) {
       const imgUrl = (tab as { imageUrl?: string }).imageUrl;
-      const mockupType = (tab as { mockupType?: string }).mockupType;
       const description = (tab as { description?: string }).description;
+      const features = (tab as { features?: string[] }).features || [];
       let paras: Paragraph[] = [];
-      // 1) A user-uploaded picture always wins.
+      // 1) A user-uploaded picture always wins and is embedded as-is.
       if (imgUrl) {
         paras = await buildImageParagraphs(imgUrl, undefined, tabImgMaxPx);
       }
-      // 2) Otherwise use the built-in app mockup screenshot for this tab (matches the preview).
-      if (paras.length === 0 && mockupType) {
-        paras = await buildImageParagraphs(`/images/app-${mockupType}-tab.png`, undefined, tabImgMaxPx);
-      }
-      // 3) Final fallback: descriptive text.
+      // 2) Otherwise render a clean textual summary (never cropped, always product/mode-correct).
       if (paras.length === 0) {
-        paras = [
-          new Paragraph({
-            alignment: AlignmentType.CENTER,
-            children: [
-              new TextRun({
-                text: `[${tab.tabName} Screen${description ? ` - ${description}` : ''}]`,
-                size: 19,
-                font: 'Calibri',
-                color: '000000',
-              }),
-            ],
-          }),
-        ];
+        if (description) {
+          paras.push(
+            new Paragraph({
+              spacing: { after: 60 },
+              children: [
+                new TextRun({ text: description, size: 19, font: 'Calibri', color: '000000', italics: true }),
+              ],
+            })
+          );
+        }
+        for (const feature of features) {
+          paras.push(
+            new Paragraph({
+              spacing: { after: 30 },
+              children: [
+                new TextRun({ text: `• ${feature}`, size: 19, font: 'Calibri', color: '000000' }),
+              ],
+            })
+          );
+        }
+        if (paras.length === 0) {
+          paras.push(
+            new Paragraph({
+              alignment: AlignmentType.CENTER,
+              children: [
+                new TextRun({ text: tab.tabName, size: 19, font: 'Calibri', color: '000000' }),
+              ],
+            })
+          );
+        }
       }
       tabBodyCells.push(
         new TableCell({
