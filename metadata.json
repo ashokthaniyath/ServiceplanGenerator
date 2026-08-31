@@ -1,0 +1,8 @@
+{
+  "name": "Service Plan Generator",
+  "description": "Visual editor and automated service plan generation tool for audio devices.",
+  "requestFramePermissions": [],
+  "majorCapabilities": [
+    "MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"
+  ]
+}
