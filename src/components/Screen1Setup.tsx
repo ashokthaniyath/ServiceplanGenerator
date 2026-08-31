@@ -179,20 +179,6 @@ export const Screen1Setup: React.FC<Screen1SetupProps> = ({
               />
             </div>
 
-            {/* SKU / Model Code */}
-            <div>
-              <label className="block text-[11px] font-bold text-gray-500 uppercase tracking-wider mb-1.5">
-                Internal Model Code / SKU
-              </label>
-              <input
-                type="text"
-                value={document.modelCode}
-                onChange={e => setDocument(prev => ({ ...prev, modelCode: e.target.value }))}
-                placeholder="e.g. AD-PRIME-800D"
-                className="w-full px-3 py-2 text-xs rounded-md border border-gray-200 bg-white text-gray-900 focus:border-black focus:ring-1 focus:ring-black outline-none font-mono transition-colors"
-              />
-            </div>
-
             {/* Category Dropdown */}
             <div>
               <label className="block text-[11px] font-bold text-gray-500 uppercase tracking-wider mb-1.5">
