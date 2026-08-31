@@ -16,6 +16,7 @@ import {
 } from 'docx';
 import { saveAs } from 'file-saver';
 import { ServicePlanDocument, ServicePlanBlock, AnnexureItem } from '../types';
+import { validateDocumentIsolation } from '../data/defaultPlans';
 
 // Total usable table width inside A4 with 1" margins ≈ 9026 dxa. Use 9000 for safety.
 const TABLE_TOTAL_WIDTH_DXA = 9000;
@@ -329,6 +330,13 @@ async function appendCustomContentElements(children: (Paragraph | Table)[], bloc
 }
 
 export async function exportDocumentToDocx(doc: ServicePlanDocument): Promise<void> {
+  // Validate that the exported document carries only the selected product's and mode's
+  // content. Preview and DOCX are generated from this exact same document model.
+  const isolationViolations = validateDocumentIsolation(doc);
+  if (isolationViolations.length > 0) {
+    isolationViolations.forEach(v => console.warn(`[Export validation] ${v}`));
+  }
+
   const corporateBlue = '245598';
   const docChildren: (Paragraph | Table)[] = [];
 
@@ -499,21 +507,22 @@ export async function exportDocumentToDocx(doc: ServicePlanDocument): Promise<vo
 
       docChildren.push(buildTable([45, 55], rows));
 
-      docChildren.push(
-        new Paragraph({
-          spacing: { before: 80, after: 140 },
-          children: [
-            new TextRun({ text: 'Note: ', bold: true, color: '000000', size: 19, font: 'Calibri' }),
-            new TextRun({
-              text: bSpecs.customization.noteText ||
-                'Music Playtime of 45 hours per charge is based on listening to music at 60% volume & in AAC Codec. Listening to music/audio files at more than 60% volume, Dolby Audio On, and Multipoint On will reduce the playtime.',
-              color: '000000',
-              size: 19,
-              font: 'Calibri',
-            }),
-          ],
-        })
-      );
+      if (bSpecs.customization.noteText && bSpecs.customization.noteText.trim().length > 0) {
+        docChildren.push(
+          new Paragraph({
+            spacing: { before: 80, after: 140 },
+            children: [
+              new TextRun({ text: 'Note: ', bold: true, color: '000000', size: 19, font: 'Calibri' }),
+              new TextRun({
+                text: bSpecs.customization.noteText,
+                color: '000000',
+                size: 19,
+                font: 'Calibri',
+              }),
+            ],
+          })
+        );
+      }
     }
   }
 
@@ -549,8 +558,8 @@ export async function exportDocumentToDocx(doc: ServicePlanDocument): Promise<vo
     }
   }
 
-  // 3.3 Colour Variants
-  if (bVariants && bVariants.enabled) {
+  // 3.3 Colour Variants — rendered only when the selected product defines variants.
+  if (bVariants && bVariants.enabled && (bVariants.content.colourVariants || []).length > 0) {
     docChildren.push(
       new Paragraph({
         spacing: { before: 120, after: 80 },
@@ -782,57 +791,64 @@ export async function exportDocumentToDocx(doc: ServicePlanDocument): Promise<vo
     }
   }
 
-  // Product Weight Matrix
+  // Product Weight Matrix — rendered only when the selected product has real dimensions.
   if (bWeight && bWeight.enabled) {
-    docChildren.push(
-      new Paragraph({
-        spacing: { before: 120, after: 80 },
-        children: [
-          new TextRun({
-            text: `${bWeight.sectionNumber || '4'} ${bWeight.title}`,
-            bold: true,
-            size: 22,
-            color: '000000',
-            font: 'Calibri',
-          }),
-        ],
-      })
-    );
-
     const wmRowsData = bWeight.content.weightMatrixRows && bWeight.content.weightMatrixRows.length > 0
       ? bWeight.content.weightMatrixRows
       : bWeight.content.weightMatrix
       ? [{ id: 'wm-1', ...bWeight.content.weightMatrix }]
       : [];
 
-    const rows = [
-      new TableRow({
-        tableHeader: true,
-        children: [
-          createHeaderCell('Product', 28),
-          createHeaderCell('Length', 14),
-          createHeaderCell('Breadth', 14),
-          createHeaderCell('Height', 14),
-          createHeaderCell('Earbuds Weight', 16),
-          createHeaderCell('Case Weight', 14),
-        ],
-      }),
-      ...wmRowsData.map(wm =>
-        new TableRow({
+    const wmHasData = wmRowsData.some(wm =>
+      [wm.length, wm.breadth, wm.height, wm.earbudsWeight, wm.caseWeight]
+        .some(v => (v || '').toString().trim().length > 0)
+    );
+
+    if (wmHasData) {
+      docChildren.push(
+        new Paragraph({
+          spacing: { before: 120, after: 80 },
           children: [
-            createBodyCell(wm.product, true, 28),
-            createBodyCell(wm.length, false, 14),
-            createBodyCell(wm.breadth, false, 14),
-            createBodyCell(wm.height, false, 14),
-            createBodyCell(wm.earbudsWeight, false, 16),
-            createBodyCell(wm.caseWeight, false, 14),
+            new TextRun({
+              text: `${bWeight.sectionNumber || '4'} ${bWeight.title}`,
+              bold: true,
+              size: 22,
+              color: '000000',
+              font: 'Calibri',
+            }),
           ],
         })
-      ),
-    ];
+      );
 
-    docChildren.push(buildTable([28, 14, 14, 14, 16, 14], rows));
-    docChildren.push(new Paragraph({ spacing: { after: 160 }, children: [] }));
+      const rows = [
+        new TableRow({
+          tableHeader: true,
+          children: [
+            createHeaderCell('Product', 28),
+            createHeaderCell('Length', 14),
+            createHeaderCell('Breadth', 14),
+            createHeaderCell('Height', 14),
+            createHeaderCell('Earbuds Weight', 16),
+            createHeaderCell('Case Weight', 14),
+          ],
+        }),
+        ...wmRowsData.map(wm =>
+          new TableRow({
+            children: [
+              createBodyCell(wm.product, true, 28),
+              createBodyCell(wm.length, false, 14),
+              createBodyCell(wm.breadth, false, 14),
+              createBodyCell(wm.height, false, 14),
+              createBodyCell(wm.earbudsWeight, false, 16),
+              createBodyCell(wm.caseWeight, false, 14),
+            ],
+          })
+        ),
+      ];
+
+      docChildren.push(buildTable([28, 14, 14, 14, 16, 14], rows));
+      docChildren.push(new Paragraph({ spacing: { after: 160 }, children: [] }));
+    }
   }
 
   // ==================== SECTION 4: HEARABLES APP FUNCTIONALITIES ====================
@@ -1122,7 +1138,8 @@ export async function exportDocumentToDocx(doc: ServicePlanDocument): Promise<vo
   }
 
   // ==================== SECTION 6: ASIN / FSN CODES ====================
-  if (bCodes && bCodes.enabled) {
+  // Rendered only when the selected product defines return codes.
+  if (bCodes && bCodes.enabled && bCodes.content.returnCodes && bCodes.content.returnCodes.length > 0) {
     docChildren.push(
       new Paragraph({
         spacing: { before: 200, after: 100 },
@@ -1138,32 +1155,30 @@ export async function exportDocumentToDocx(doc: ServicePlanDocument): Promise<vo
       })
     );
 
-    if (bCodes.content.returnCodes && bCodes.content.returnCodes.length > 0) {
-      const codeRows = [
+    const codeRows = [
+      new TableRow({
+        tableHeader: true,
+        children: [
+          createHeaderCell('Product Description', 40),
+          createHeaderCell('EAN Number', 24),
+          createHeaderCell('ASIN', 18),
+          createHeaderCell('FSN', 18),
+        ],
+      }),
+      ...bCodes.content.returnCodes.map(rc =>
         new TableRow({
-          tableHeader: true,
           children: [
-            createHeaderCell('Product Description', 40),
-            createHeaderCell('EAN Number', 24),
-            createHeaderCell('ASIN', 18),
-            createHeaderCell('FSN', 18),
+            createBodyCell(rc.productDesc, true, 40),
+            createBodyCell(rc.ean, false, 24),
+            createBodyCell(rc.asin, false, 18),
+            createBodyCell(rc.fsn, false, 18),
           ],
-        }),
-        ...bCodes.content.returnCodes.map(rc =>
-          new TableRow({
-            children: [
-              createBodyCell(rc.productDesc, true, 40),
-              createBodyCell(rc.ean, false, 24),
-              createBodyCell(rc.asin, false, 18),
-              createBodyCell(rc.fsn, false, 18),
-            ],
-          })
-        ),
-      ];
+        })
+      ),
+    ];
 
-      docChildren.push(buildTable([40, 24, 18, 18], codeRows));
-      docChildren.push(new Paragraph({ spacing: { after: 160 }, children: [] }));
-    }
+    docChildren.push(buildTable([40, 24, 18, 18], codeRows));
+    docChildren.push(new Paragraph({ spacing: { after: 160 }, children: [] }));
   }
 
   // ==================== SECTION 7: ANNEXURE ====================

@@ -93,6 +93,33 @@ export const DocumentPDFView: React.FC<DocumentPDFViewProps> = ({
     ? document.blocks.filter(b => b.id === activeBlockId && b.enabled)
     : document.blocks.filter(b => b.enabled);
 
+  // Product-exclusive optional sections (colour variants, weight matrix, ASIN/FSN codes)
+  // are hidden in the full-document preview when the selected product has no data for them,
+  // so the preview matches the exported DOCX and no empty containers are shown. In the
+  // single-block editor these remain visible so the user can add data.
+  const isSectionRenderable = (block: typeof document.blocks[number]): boolean => {
+    if (isSingleBlockPreview) return true;
+    switch (block.type) {
+      case 'colour_variants':
+        return (block.content.colourVariants || []).length > 0;
+      case 'return_codes':
+        return (block.content.returnCodes || []).length > 0;
+      case 'weight_matrix': {
+        const wmRows = block.content.weightMatrixRows && block.content.weightMatrixRows.length > 0
+          ? block.content.weightMatrixRows
+          : block.content.weightMatrix
+          ? [{ id: 'wm-row-0', ...block.content.weightMatrix }]
+          : [];
+        return wmRows.some(row =>
+          [row.length, row.breadth, row.height, row.earbudsWeight, row.caseWeight]
+            .some(v => (v || '').toString().trim().length > 0)
+        );
+      }
+      default:
+        return true;
+    }
+  };
+
   // Helper to check if field is selected
   const isSelected = (blockId: string, fieldId: string) => {
     return selectedElement?.blockId === blockId && selectedElement?.fieldId === fieldId;
@@ -490,13 +517,15 @@ export const DocumentPDFView: React.FC<DocumentPDFViewProps> = ({
                     ))}
                   </tbody>
                 </table>
-                <p 
-                  onClick={(e) => handleElementClick(e, bSpecs.id, 'noteText', 'note', 'Specifications Note', bSpecs.customization.noteText || '')}
-                  className={`text-[11px] text-slate-800 mt-2 leading-relaxed ${getClickableClass(bSpecs.id, 'noteText')}`}
-                >
-                  <strong>Note: </strong>
-                  {bSpecs.customization.noteText || 'Music Playtime of 45 hours per charge is based on listening to music at 60% volume & in AAC Codec. Listening to music/audio files at more than 60% volume, Dolby Audio On, and Multipoint On will reduce the playtime.'}
-                </p>
+                {(bSpecs.customization.noteText && bSpecs.customization.noteText.trim().length > 0) && (
+                  <p 
+                    onClick={(e) => handleElementClick(e, bSpecs.id, 'noteText', 'note', 'Specifications Note', bSpecs.customization.noteText || '')}
+                    className={`text-[11px] text-slate-800 mt-2 leading-relaxed ${getClickableClass(bSpecs.id, 'noteText')}`}
+                  >
+                    <strong>Note: </strong>
+                    {bSpecs.customization.noteText}
+                  </p>
+                )}
                 {renderCustomContentElements(bSpecs)}
               </div>
 
@@ -524,7 +553,8 @@ export const DocumentPDFView: React.FC<DocumentPDFViewProps> = ({
                 {renderCustomContentElements(bPackaging)}
               </div>
 
-              {/* 3.3 Colour Variants */}
+              {/* 3.3 Colour Variants — shown only when the selected product defines variants */}
+              {(bVariants.content.colourVariants || []).length > 0 && (
               <div className="pt-2">
                 <h3 
                   onClick={(e) => handleElementClick(e, bVariants.id, 'title', 'title', '3.3 Colour Variants', bVariants.title, { isBold: true })}
@@ -594,6 +624,7 @@ export const DocumentPDFView: React.FC<DocumentPDFViewProps> = ({
                 </div>
                 {renderCustomContentElements(bVariants)}
               </div>
+              )}
             </div>
           )}
 
@@ -815,7 +846,19 @@ export const DocumentPDFView: React.FC<DocumentPDFViewProps> = ({
                 {renderCustomContentElements(bCharging)}
               </div>
 
-              {/* Product Weight Matrix */}
+              {/* Product Weight Matrix — shown only when the selected product has real dimensions */}
+              {(() => {
+                const wmRows = bWeight.content.weightMatrixRows && bWeight.content.weightMatrixRows.length > 0
+                  ? bWeight.content.weightMatrixRows
+                  : bWeight.content.weightMatrix
+                  ? [{ id: 'wm-row-0', ...bWeight.content.weightMatrix }]
+                  : [];
+                const wmHasData = wmRows.some(row =>
+                  [row.length, row.breadth, row.height, row.earbudsWeight, row.caseWeight]
+                    .some(v => (v || '').toString().trim().length > 0)
+                );
+                if (!wmHasData) return null;
+                return (
               <div className="pt-2">
                 <h3 
                   onClick={(e) => handleElementClick(e, bWeight.id, 'title', 'title', `${bWeight.sectionNumber} Weight Matrix`, bWeight.title, { isBold: true })}
@@ -823,42 +866,34 @@ export const DocumentPDFView: React.FC<DocumentPDFViewProps> = ({
                 >
                   {bWeight.sectionNumber} {bWeight.title}
                 </h3>
-                {(() => {
-                  const wmRows = bWeight.content.weightMatrixRows && bWeight.content.weightMatrixRows.length > 0
-                    ? bWeight.content.weightMatrixRows
-                    : bWeight.content.weightMatrix
-                    ? [{ id: 'wm-row-0', ...bWeight.content.weightMatrix }]
-                    : [];
-
-                  return (
-                    <table className="w-full border border-black text-xs border-collapse">
-                      <thead>
-                        <tr className="border-b border-black font-bold bg-white">
-                          <th className="p-1.5 border-r border-black font-bold text-left text-black">Product</th>
-                          <th className="p-1.5 border-r border-black font-bold text-left text-black">Length</th>
-                          <th className="p-1.5 border-r border-black font-bold text-left text-black">Breadth</th>
-                          <th className="p-1.5 border-r border-black font-bold text-left text-black">Height</th>
-                          <th className="p-1.5 border-r border-black font-bold text-left text-black">Earbuds Weight</th>
-                          <th className="p-1.5 font-bold text-left text-black">Case Weight</th>
-                        </tr>
-                      </thead>
-                      <tbody>
-                        {wmRows.map(row => (
-                          <tr key={row.id} className="border-b border-black last:border-b-0">
-                            <td className="p-1.5 font-bold border-r border-black text-black">{row.product}</td>
-                            <td className="p-1.5 border-r border-black text-black">{row.length}</td>
-                            <td className="p-1.5 border-r border-black text-black">{row.breadth}</td>
-                            <td className="p-1.5 border-r border-black text-black">{row.height}</td>
-                            <td className="p-1.5 border-r border-black text-black">{row.earbudsWeight}</td>
-                            <td className="p-1.5 text-black">{row.caseWeight}</td>
-                          </tr>
-                        ))}
-                      </tbody>
-                    </table>
-                  );
-                })()}
+                <table className="w-full border border-black text-xs border-collapse">
+                  <thead>
+                    <tr className="border-b border-black font-bold bg-white">
+                      <th className="p-1.5 border-r border-black font-bold text-left text-black">Product</th>
+                      <th className="p-1.5 border-r border-black font-bold text-left text-black">Length</th>
+                      <th className="p-1.5 border-r border-black font-bold text-left text-black">Breadth</th>
+                      <th className="p-1.5 border-r border-black font-bold text-left text-black">Height</th>
+                      <th className="p-1.5 border-r border-black font-bold text-left text-black">Earbuds Weight</th>
+                      <th className="p-1.5 font-bold text-left text-black">Case Weight</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {wmRows.map(row => (
+                      <tr key={row.id} className="border-b border-black last:border-b-0">
+                        <td className="p-1.5 font-bold border-r border-black text-black">{row.product}</td>
+                        <td className="p-1.5 border-r border-black text-black">{row.length}</td>
+                        <td className="p-1.5 border-r border-black text-black">{row.breadth}</td>
+                        <td className="p-1.5 border-r border-black text-black">{row.height}</td>
+                        <td className="p-1.5 border-r border-black text-black">{row.earbudsWeight}</td>
+                        <td className="p-1.5 text-black">{row.caseWeight}</td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
                 {renderCustomContentElements(bWeight)}
               </div>
+                );
+              })()}
             </div>
           )}
 
@@ -1359,7 +1394,8 @@ export const DocumentPDFView: React.FC<DocumentPDFViewProps> = ({
               </table>
               {renderCustomContentElements(bDiag)}
 
-              {/* Section 6 Return Codes */}
+              {/* Section 6 Return Codes — shown only when the selected product defines return codes */}
+              {(bCodes.content.returnCodes || []).length > 0 && (
               <div className="pt-2">
                 <h2 
                   onClick={(e) => handleElementClick(e, bCodes.id, 'title', 'title', `${bCodes.sectionNumber} Return Codes`, bCodes.title, { isBold: true })}
@@ -1390,6 +1426,7 @@ export const DocumentPDFView: React.FC<DocumentPDFViewProps> = ({
                 </table>
                 {renderCustomContentElements(bCodes)}
               </div>
+              )}
 
               {/* Section 7 Annexure */}
               <div className="pt-2">
@@ -1667,7 +1704,7 @@ export const DocumentPDFView: React.FC<DocumentPDFViewProps> = ({
 
           {/* Main Content Blocks Sequence */}
           <div className="doc-content space-y-10 relative z-10">
-            {blocksToRender.map(block => (
+            {blocksToRender.filter(isSectionRenderable).map(block => (
               <section
                 key={block.id}
                 id={`pdf-section-${block.id}`}

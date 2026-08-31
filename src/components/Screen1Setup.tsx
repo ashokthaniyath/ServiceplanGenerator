@@ -10,7 +10,7 @@ import {
   Check
 } from 'lucide-react';
 import { ServicePlanDocument, AudioCategory, DeviceType } from '../types';
-import { sampleTemplates, getHearablesContentForDeviceType } from '../data/defaultPlans';
+import { sampleTemplates, getHearablesContentForProduct } from '../data/defaultPlans';
 import { EarbudsCaseMockup } from './VisualMockups';
 
 interface Screen1SetupProps {
@@ -51,16 +51,18 @@ export const Screen1Setup: React.FC<Screen1SetupProps> = ({
     }));
   };
 
-  // Switching device type rebinds ONLY the Hearables App section to the SDK (full) or
-  // Non-SDK (reduced Sound/System) functionality. All other product-specific content is
-  // preserved so the current product stays isolated — no cross-product data leaks.
+  // Switching device type fully replaces the Hearables App content model with the content
+  // for the selected mode. The product's OWN authored content is restored when its native
+  // mode is selected; otherwise the mode-correct configuration is loaded. All other
+  // product-specific content is preserved so the current product stays isolated — no
+  // cross-product and no cross-mode data leaks.
   const handleDeviceTypeChange = (deviceType: DeviceType) => {
     setDocument(prev => ({
       ...prev,
       deviceType,
       blocks: prev.blocks.map(b =>
         b.type === 'hearables_app'
-          ? { ...b, content: getHearablesContentForDeviceType(deviceType) }
+          ? { ...b, content: getHearablesContentForProduct(prev.id, deviceType) }
           : b
       ),
     }));

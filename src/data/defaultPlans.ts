@@ -1826,23 +1826,178 @@ export const airdopes141Document: ServicePlanDocument = {
   blocks: boatAirdopes141Blocks,
 };
 
+// ============================================================================
+// PRODUCT + MODE CONTENT ISOLATION LAYER
+// The selected Product + selected SDK/Non-SDK Mode is the single source of
+// truth for every preset document. Derived presets are built through
+// buildDerivedDocument() which guarantees that no block content is shared by
+// reference with any other product and no foreign product identity remains.
+// ============================================================================
+
+const deepClone = <T,>(value: T): T => JSON.parse(JSON.stringify(value));
+
+/** Known product identity tokens used for rebinding and isolation validation. */
+export const KNOWN_PRODUCT_TOKENS = [
+  'Airdopes Prime 800D',
+  'Airdopes 141',
+  'Rockerz 330 Pro Max',
+  'Nirvana 751 ANC',
+];
+
+/** Recursively apply string replacements to every string field of a value. */
+const rebindStringsDeep = <T,>(value: T, replacements: [RegExp, string][]): T => {
+  if (typeof value === 'string') {
+    return replacements.reduce((acc, [re, to]) => acc.replace(re, to), value as string) as unknown as T;
+  }
+  if (Array.isArray(value)) {
+    return value.map(v => rebindStringsDeep(v, replacements)) as unknown as T;
+  }
+  if (value && typeof value === 'object') {
+    const out: Record<string, unknown> = {};
+    for (const k of Object.keys(value as Record<string, unknown>)) {
+      out[k] = rebindStringsDeep((value as Record<string, unknown>)[k], replacements);
+    }
+    return out as unknown as T;
+  }
+  return value;
+};
+
+/**
+ * Resolve the Hearables App content for a given document + SDK/Non-SDK mode.
+ * A product's own authored app content is used only when it matches the
+ * requested mode; otherwise the mode-correct generic configuration is used.
+ * Content from another product or from the other mode can never be returned.
+ */
+export const getHearablesContentForProduct = (
+  documentId: string,
+  deviceType: DeviceType
+): ServicePlanBlock['content'] => {
+  const ownContentByProduct: Record<string, Partial<Record<DeviceType, ServicePlanBlock['content'] | undefined>>> = {
+    'doc-boat-airdopes-prime-800d': {
+      'SDK': boatAirdopesPrime800DBlocks.find(b => b.type === 'hearables_app')?.content,
+    },
+    'doc-boat-airdopes-141-gen3': {
+      'Non-SDK': boatAirdopes141Blocks.find(b => b.type === 'hearables_app')?.content,
+    },
+  };
+  const own = ownContentByProduct[documentId]?.[deviceType];
+  if (own) return deepClone(own);
+  return getHearablesContentForDeviceType(deviceType);
+};
+
+interface DerivedDocumentOptions {
+  id: string;
+  productName: string;
+  shortName: string;
+  category: ServicePlanDocument['category'];
+  deviceType: DeviceType;
+  modelCode: string;
+  specifications: { id: string; key: string; value: string; highlight?: boolean }[];
+  specNote?: string;
+}
+
+/**
+ * Build a fully isolated document for a derived product preset.
+ * Guarantees:
+ *  • Blocks are deep-cloned — nothing is shared by reference with other presets
+ *  • Every occurrence of the base product's name is rebound to the new product
+ *  • Product-exclusive data that cannot be inherited (colour variants, ASIN/FSN
+ *    return codes, physical weight/dimension values) is cleared, never borrowed
+ *  • Hearables App content is loaded strictly from the selected SDK/Non-SDK mode
+ */
+const buildDerivedDocument = (opts: DerivedDocumentOptions): ServicePlanDocument => {
+  const replacements: [RegExp, string][] = [
+    [/boAt Airdopes Prime 800D/g, opts.productName],
+    [/Airdopes Prime 800D/g, opts.shortName],
+  ];
+
+  const blocks: ServicePlanBlock[] = deepClone(boatAirdopesPrime800DBlocks).map(block => {
+    const b = rebindStringsDeep(block, replacements) as ServicePlanBlock;
+    switch (b.type) {
+      case 'specifications_table':
+        return {
+          ...b,
+          content: { ...b.content, specifications: deepClone(opts.specifications) },
+          customization: { ...b.customization, noteText: opts.specNote || '' },
+        };
+      case 'colour_variants':
+        // Colour variants are strictly product-specific — never inherited
+        return { ...b, content: { ...b.content, colourVariants: [] } };
+      case 'weight_matrix':
+        // Physical dimensions/weights are strictly product-specific — never inherited
+        return {
+          ...b,
+          content: {
+            ...b.content,
+            weightMatrix: { product: opts.productName, length: '', breadth: '', height: '', earbudsWeight: '', caseWeight: '' },
+            weightMatrixRows: [],
+          },
+        };
+      case 'return_codes':
+        // ASIN/FSN/EAN codes are strictly product-specific — never inherited
+        return { ...b, content: { ...b.content, returnCodes: [] } };
+      case 'hearables_app':
+        // App content is loaded strictly from the selected SDK/Non-SDK mode
+        return { ...b, content: getHearablesContentForDeviceType(opts.deviceType) };
+      default:
+        return b;
+    }
+  });
+
+  return {
+    ...deepClone(defaultMasterDocument),
+    id: opts.id,
+    productName: opts.productName,
+    category: opts.category,
+    deviceType: opts.deviceType,
+    modelCode: opts.modelCode,
+    blocks,
+  };
+};
+
+export const neckbandDocument: ServicePlanDocument = buildDerivedDocument({
+  id: 'doc-neckband-master',
+  productName: 'boAt Rockerz 330 Pro Max',
+  shortName: 'Rockerz 330 Pro Max',
+  category: 'Neckband',
+  deviceType: 'SDK',
+  modelCode: 'RCKZ-330-PRO',
+  specifications: [
+    { id: 'sp-1', key: 'Product Name', value: 'Rockerz 330 Pro Max', highlight: true },
+    { id: 'sp-2', key: 'Headphone Type', value: 'Wireless Bluetooth Neckband' },
+    { id: 'sp-3', key: 'Bluetooth Version', value: 'v5.3' },
+    { id: 'sp-4', key: 'Music Playtime', value: 'Up to 60 hours at 60% volume', highlight: true },
+    { id: 'sp-5', key: 'Driver Size', value: '10 mm*2 Dynamic Bass Drivers' },
+    { id: 'sp-6', key: 'Fast Charging', value: 'ASAP™ Charge: 10 mins = 20 hrs playtime' },
+    { id: 'sp-7', key: 'Magnetic Smart Power', value: 'Yes (Separate buds to power ON, snap together to power OFF)' },
+  ],
+  specNote: 'Music Playtime of 60 hours per charge is based on listening to music at 60% volume. Listening to music/audio files at more than 60% volume will reduce the playtime.',
+});
+
+export const nirvana751Document: ServicePlanDocument = buildDerivedDocument({
+  id: 'doc-headphones-master',
+  productName: 'boAt Nirvana 751 ANC',
+  shortName: 'Nirvana 751 ANC',
+  category: 'Headphones',
+  deviceType: 'SDK',
+  modelCode: 'NRVN-751-ANC',
+  specifications: [
+    { id: 'sp-1', key: 'Product Name', value: 'Nirvana 751 ANC', highlight: true },
+    { id: 'sp-2', key: 'Headphone Type', value: 'Over-Ear Wireless ANC Headphones' },
+    { id: 'sp-3', key: 'Active Noise Cancellation', value: 'Hybrid ANC up to 33dB', highlight: true },
+    { id: 'sp-4', key: 'Driver Size', value: '40 mm High-Definition Drivers' },
+    { id: 'sp-5', key: 'Playback Time', value: '65 Hours (ANC OFF) / 54 Hours (ANC ON)' },
+    { id: 'sp-6', key: 'Dual Mode Connectivity', value: 'Bluetooth v5.0 + 3.5mm AUX Cable' },
+  ],
+  specNote: 'Playback time of 65 hours (ANC OFF) / 54 hours (ANC ON) per charge is based on listening to music at 60% volume. Listening at higher volume will reduce the playtime.',
+});
+
+// Single source of truth: both preset registries reference the SAME documents.
 export const AUDIO_PRODUCT_PRESETS: Record<string, ServicePlanDocument> = {
   'tpl-boat-prime': defaultMasterDocument,
   'tpl-airdopes-141': airdopes141Document,
-  'tpl-neckband': {
-    ...defaultMasterDocument,
-    id: 'doc-neckband-master',
-    productName: 'boAt Rockerz 330 Pro Max',
-    category: 'Neckband',
-    modelCode: 'RCKZ-330-PRO',
-  },
-  'tpl-headphones': {
-    ...defaultMasterDocument,
-    id: 'doc-headphones-master',
-    productName: 'boAt Nirvana 751 ANC',
-    category: 'Headphones',
-    modelCode: 'NRVN-751-ANC',
-  },
+  'tpl-neckband': neckbandDocument,
+  'tpl-headphones': nirvana751Document,
 };
 
 export const sampleTemplates: { id: string; name: string; category: any; description: string; document: ServicePlanDocument }[] = [
@@ -1865,64 +2020,38 @@ export const sampleTemplates: { id: string; name: string; category: any; descrip
     name: 'Standard Wireless Neckband Service Plan',
     category: 'Neckband',
     description: 'Optimized blueprint for Bluetooth neckbands featuring Magnetic Hall switch power controls, Inline 3-button specs, and vibration motor diagnostics.',
-    document: {
-      ...defaultMasterDocument,
-      id: 'doc-neckband-master',
-      productName: 'boAt Rockerz 330 Pro Max',
-      category: 'Neckband',
-      modelCode: 'RCKZ-330-PRO',
-      blocks: boatAirdopesPrime800DBlocks.map(b => {
-        if (b.type === 'specifications_table') {
-          return {
-            ...b,
-            content: {
-              ...b.content,
-              specifications: [
-                { id: 'sp-1', key: 'Product Name', value: 'Rockerz 330 Pro Max', highlight: true },
-                { id: 'sp-2', key: 'Headphone Type', value: 'Wireless Bluetooth Neckband' },
-                { id: 'sp-3', key: 'Bluetooth Version', value: 'v5.3' },
-                { id: 'sp-4', key: 'Music Playtime', value: 'Up to 60 hours at 60% volume', highlight: true },
-                { id: 'sp-5', key: 'Driver Size', value: '10 mm*2 Dynamic Bass Drivers' },
-                { id: 'sp-6', key: 'Fast Charging', value: 'ASAP™ Charge: 10 mins = 20 hrs playtime' },
-                { id: 'sp-7', key: 'Magnetic Smart Power', value: 'Yes (Separate buds to power ON, snap together to power OFF)' },
-              ],
-            },
-          };
-        }
-        return b;
-      }),
-    },
+    document: neckbandDocument,
   },
   {
     id: 'tpl-headphones',
     name: 'Wireless ANC Over-Ear Headphone Plan',
     category: 'Headphones',
     description: 'Service plan for premium active noise cancelling over-ear headphones with 40mm drivers, AUX bypass, and ANC circuit diagnostics.',
-    document: {
-      ...defaultMasterDocument,
-      id: 'doc-headphones-master',
-      productName: 'boAt Nirvana 751 ANC',
-      category: 'Headphones',
-      modelCode: 'NRVN-751-ANC',
-      blocks: boatAirdopesPrime800DBlocks.map(b => {
-        if (b.type === 'specifications_table') {
-          return {
-            ...b,
-            content: {
-              ...b.content,
-              specifications: [
-                { id: 'sp-1', key: 'Product Name', value: 'Nirvana 751 ANC', highlight: true },
-                { id: 'sp-2', key: 'Headphone Type', value: 'Over-Ear Wireless ANC Headphones' },
-                { id: 'sp-3', key: 'Active Noise Cancellation', value: 'Hybrid ANC up to 33dB', highlight: true },
-                { id: 'sp-4', key: 'Driver Size', value: '40 mm High-Definition Drivers' },
-                { id: 'sp-5', key: 'Playback Time', value: '65 Hours (ANC OFF) / 54 Hours (ANC ON)' },
-                { id: 'sp-6', key: 'Dual Mode Connectivity', value: 'Bluetooth v5.0 + 3.5mm AUX Cable' },
-              ],
-            },
-          };
-        }
-        return b;
-      }),
-    },
+    document: nirvana751Document,
   },
 ];
+
+/**
+ * Validate that a document contains no content belonging to another product
+ * or to the other SDK/Non-SDK mode. Returns a list of violations (empty = OK).
+ */
+export const validateDocumentIsolation = (doc: ServicePlanDocument): string[] => {
+  const violations: string[] = [];
+  const foreignTokens = KNOWN_PRODUCT_TOKENS.filter(t => !doc.productName.includes(t));
+  for (const block of doc.blocks) {
+    if (!block.enabled) continue;
+    const serialized = `${block.title} ${JSON.stringify(block.content)}`;
+    for (const token of foreignTokens) {
+      if (serialized.includes(token)) {
+        violations.push(`Block "${block.title}" (${block.type}) contains content from another product: "${token}"`);
+      }
+    }
+    if (block.type === 'hearables_app' && doc.deviceType === 'Non-SDK') {
+      const tabs = block.content.hearablesAppTabs || [];
+      if (tabs.some(t => t.mockupType === 'touch')) {
+        violations.push('Non-SDK document contains the SDK-only "Touch" app tab');
+      }
+    }
+  }
+  return violations;
+};
