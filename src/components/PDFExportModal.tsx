@@ -1,7 +1,6 @@
 import React, { useState } from 'react';
 import { 
   X, 
-  Printer, 
   Download, 
   FileText, 
   Eye,
@@ -47,23 +46,6 @@ export const PDFExportModal: React.FC<PDFExportModalProps> = ({
     } finally {
       setIsExportingDocx(false);
     }
-  };
-
-  const handleDownloadPdf = () => {
-    // Print the exact preview shown in this modal (same DOM, same layout mode).
-    // Filename nomenclature: "{Product Name} - {SDK|Non-SDK}"
-    window.document.title = `${document.productName} - ${document.deviceType}`;
-    window.document.body.classList.add('print-preview-mode');
-    const cleanup = () => {
-      window.document.body.classList.remove('print-preview-mode');
-      window.removeEventListener('afterprint', cleanup);
-    };
-    window.addEventListener('afterprint', cleanup);
-    setTimeout(() => {
-      window.print();
-      // Safety net for browsers that don't fire afterprint reliably
-      setTimeout(cleanup, 1000);
-    }, 100);
   };
 
   const enabledSectionsCount = document.blocks.filter(b => b.enabled).length;
@@ -127,9 +109,8 @@ export const PDFExportModal: React.FC<PDFExportModalProps> = ({
           </button>
         </div>
 
-        {/* Right: Allowed Download Formats (DOCX, then PDF) + Close */}
+        {/* Right: Download (.docx only — PDF is preview-only) + Close */}
         <div className="flex items-center gap-2.5">
-          {/* Format 1: DOCX Download */}
           <button
             type="button"
             onClick={handleDownloadDocx}
@@ -151,17 +132,6 @@ export const PDFExportModal: React.FC<PDFExportModalProps> = ({
             <span className="whitespace-nowrap">
               {isExportingDocx ? 'Generating DOCX...' : docxExportSuccess ? 'DOCX Downloaded!' : 'Download DOCX'}
             </span>
-          </button>
-
-          {/* Format 2: PDF Download */}
-          <button
-            type="button"
-            onClick={handleDownloadPdf}
-            className="flex items-center gap-2 px-3.5 py-2 bg-black hover:bg-gray-800 text-white text-xs font-semibold rounded-lg shadow-sm transition-all cursor-pointer active:scale-98"
-            title="Print or Save Document as PDF (.pdf)"
-          >
-            <Printer className="w-4 h-4" />
-            <span className="whitespace-nowrap">Download PDF</span>
           </button>
 
           <div className="h-5 w-px bg-gray-200 mx-1 hidden sm:block" />
@@ -199,14 +169,6 @@ export const PDFExportModal: React.FC<PDFExportModalProps> = ({
         >
           <FileText className="w-3.5 h-3.5" />
           <span>DOCX</span>
-        </button>
-        <button
-          type="button"
-          onClick={handleDownloadPdf}
-          className="flex-1 flex items-center justify-center gap-1.5 py-2 bg-black text-white text-xs font-semibold rounded-md shadow-xs"
-        >
-          <Printer className="w-3.5 h-3.5" />
-          <span>PDF</span>
         </button>
       </footer>
     </div>

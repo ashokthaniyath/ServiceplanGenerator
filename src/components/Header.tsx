@@ -3,7 +3,9 @@ import {
   FileText, 
   Eye, 
   Layers,
-  Columns
+  Columns,
+  Check,
+  Undo2
 } from 'lucide-react';
 import { ServicePlanDocument } from '../types';
 
@@ -20,6 +22,9 @@ interface HeaderProps {
   onPrint?: () => void;
   onQuickPrint?: () => void;
   onSelectPreset?: (presetKey: string) => void;
+  isDirty?: boolean;
+  onApplyChanges?: () => void;
+  onDiscardChanges?: () => void;
 }
 
 export const Header: React.FC<HeaderProps> = ({
@@ -34,6 +39,9 @@ export const Header: React.FC<HeaderProps> = ({
   onOpenExportModal,
   onPrint,
   onQuickPrint,
+  isDirty = false,
+  onApplyChanges,
+  onDiscardChanges,
 }) => {
   const isScreen1 = currentScreen === 1 || currentScreen === 'screen1';
   const isScreen2 = currentScreen === 2 || currentScreen === 'screen2';
@@ -109,6 +117,33 @@ export const Header: React.FC<HeaderProps> = ({
 
       {/* Right Actions */}
       <div className="flex items-center gap-2.5">
+        {isDirty && (
+          <div className="flex items-center gap-1.5 pr-1.5 border-r border-gray-200">
+            <span className="flex items-center gap-1.5 text-[11px] font-semibold text-amber-700">
+              <span className="w-2 h-2 rounded-full bg-amber-500 animate-pulse" />
+              <span className="hidden sm:inline">Unsaved changes</span>
+            </span>
+            <button
+              type="button"
+              onClick={onApplyChanges}
+              className="flex items-center gap-1 px-2.5 py-1.5 bg-emerald-600 hover:bg-emerald-700 text-white text-[11px] font-bold rounded-md shadow-2xs transition-colors cursor-pointer"
+              title="Apply and persist all pending changes"
+            >
+              <Check className="w-3 h-3" />
+              <span>Apply</span>
+            </button>
+            <button
+              type="button"
+              onClick={onDiscardChanges}
+              className="flex items-center gap-1 px-2.5 py-1.5 bg-white hover:bg-gray-50 text-gray-700 border border-gray-300 text-[11px] font-bold rounded-md shadow-2xs transition-colors cursor-pointer"
+              title="Discard pending changes and revert to last applied state"
+            >
+              <Undo2 className="w-3 h-3" />
+              <span>Discard</span>
+            </button>
+          </div>
+        )}
+
         {isScreen2 && (
           <>
             {/* Primary Action: Preview & Download Button */}

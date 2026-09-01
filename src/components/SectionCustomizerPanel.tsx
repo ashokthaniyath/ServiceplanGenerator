@@ -418,6 +418,7 @@ export const SectionCustomizerPanel: React.FC<SectionCustomizerPanelProps> = ({
 
   const handleRemoveTableColumn = (colIdx: number) => {
     if (currentTableColumns.length <= 1) return;
+    if (!window.confirm(`Delete column "${currentTableColumns[colIdx]}" and its data in all rows? This cannot be undone.`)) return;
     const nextCols = currentTableColumns.filter((_, idx) => idx !== colIdx);
     const nextRows = currentTableRows.map(r => {
       const copy: any = { id: r.id };
@@ -499,7 +500,33 @@ export const SectionCustomizerPanel: React.FC<SectionCustomizerPanelProps> = ({
 
   const handleRemoveTableRow = (rowIdx: number) => {
     if (currentTableRows.length <= 1) return;
+    if (!window.confirm('Delete this table row? This cannot be undone.')) return;
     const nextRows = currentTableRows.filter((_, idx) => idx !== rowIdx);
+
+    if (activeCustomElement) {
+      const updatedElements = contentElements.map(el => {
+        if (el.id === activeCustomElement.id) {
+          return { ...el, tableRows: nextRows };
+        }
+        return el;
+      });
+      onChange({
+        ...block,
+        content: {
+          ...block.content,
+          contentElements: updatedElements,
+        },
+      });
+    }
+    onUpdateSelectedElementText(activeText, { tableRows: nextRows });
+  };
+
+  const handleReorderTableRow = (rowIdx: number, direction: 'up' | 'down') => {
+    const targetIdx = direction === 'up' ? rowIdx - 1 : rowIdx + 1;
+    if (targetIdx < 0 || targetIdx >= currentTableRows.length) return;
+    const nextRows = [...currentTableRows];
+    const [removed] = nextRows.splice(rowIdx, 1);
+    nextRows.splice(targetIdx, 0, removed);
 
     if (activeCustomElement) {
       const updatedElements = contentElements.map(el => {
@@ -975,16 +1002,36 @@ export const SectionCustomizerPanel: React.FC<SectionCustomizerPanelProps> = ({
                   <div key={row.id || rIdx} className="p-2 bg-white rounded-lg border border-gray-200 shadow-2xs space-y-1.5">
                     <div className="flex items-center justify-between border-b border-gray-100 pb-1">
                       <span className="text-[10px] font-mono font-bold text-gray-600">Row #{rIdx + 1}</span>
-                      {currentTableRows.length > 1 && (
+                      <div className="flex items-center gap-0.5">
                         <button
                           type="button"
-                          onClick={() => handleRemoveTableRow(rIdx)}
-                          className="p-0.5 text-gray-400 hover:text-red-600 rounded"
-                          title="Delete Row"
+                          disabled={rIdx === 0}
+                          onClick={() => handleReorderTableRow(rIdx, 'up')}
+                          className="p-0.5 text-gray-400 hover:text-gray-700 disabled:opacity-20 rounded"
+                          title="Move row up"
                         >
-                          <Trash2 className="w-3 h-3" />
+                          <ChevronUp className="w-3 h-3" />
                         </button>
-                      )}
+                        <button
+                          type="button"
+                          disabled={rIdx === currentTableRows.length - 1}
+                          onClick={() => handleReorderTableRow(rIdx, 'down')}
+                          className="p-0.5 text-gray-400 hover:text-gray-700 disabled:opacity-20 rounded"
+                          title="Move row down"
+                        >
+                          <ChevronDown className="w-3 h-3" />
+                        </button>
+                        {currentTableRows.length > 1 && (
+                          <button
+                            type="button"
+                            onClick={() => handleRemoveTableRow(rIdx)}
+                            className="p-0.5 text-gray-400 hover:text-red-600 rounded"
+                            title="Delete Row"
+                          >
+                            <Trash2 className="w-3 h-3" />
+                          </button>
+                        )}
+                      </div>
                     </div>
                     <div className="grid grid-cols-1 gap-1">
                       {currentTableColumns.map((col, cIdx) => (

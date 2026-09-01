@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useMemo, useEffect } from 'react';
 import { 
   DEFAULT_BOAT_AIRDOPES_800D, 
   AUDIO_PRODUCT_PRESETS 
@@ -9,12 +9,57 @@ import { Screen1Setup } from './components/Screen1Setup';
 import { Screen2Editor } from './components/Screen2Editor';
 import { PDFExportModal } from './components/PDFExportModal';
 
+const SAVED_DOC_KEY = 'spg-saved-document';
+
+function loadSavedDocument(): ServicePlanDocument | null {
+  try {
+    const raw = localStorage.getItem(SAVED_DOC_KEY);
+    return raw ? (JSON.parse(raw) as ServicePlanDocument) : null;
+  } catch {
+    return null;
+  }
+}
+
 export default function App() {
   // Main workflow screen: 1 (Setup & Block Picker) | 2 (3-Lane Visual Editor)
   const [currentScreen, setCurrentScreen] = useState<1 | 2>(1);
 
-  // Central Document State
-  const [document, setDocument] = useState<ServicePlanDocument>(DEFAULT_BOAT_AIRDOPES_800D);
+  // Central Document State — restored from last applied baseline when available
+  const [document, setDocument] = useState<ServicePlanDocument>(() => loadSavedDocument() || DEFAULT_BOAT_AIRDOPES_800D);
+
+  // Last applied baseline for unsaved-change detection
+  const [savedDocument, setSavedDocument] = useState<ServicePlanDocument>(() => loadSavedDocument() || DEFAULT_BOAT_AIRDOPES_800D);
+
+  const isDirty = useMemo(
+    () => JSON.stringify(document) !== JSON.stringify(savedDocument),
+    [document, savedDocument]
+  );
+
+  const handleApplyChanges = () => {
+    setSavedDocument(document);
+    try {
+      localStorage.setItem(SAVED_DOC_KEY, JSON.stringify(document));
+    } catch (e) {
+      console.warn('Could not persist document baseline:', e);
+    }
+  };
+
+  const handleDiscardChanges = () => {
+    if (!window.confirm('Discard all unsaved changes and revert to the last applied state?')) return;
+    setDocument(JSON.parse(JSON.stringify(savedDocument)));
+  };
+
+  // Warn before closing the tab with unsaved changes
+  useEffect(() => {
+    const onBeforeUnload = (e: BeforeUnloadEvent) => {
+      if (isDirty) {
+        e.preventDefault();
+        e.returnValue = '';
+      }
+    };
+    window.addEventListener('beforeunload', onBeforeUnload);
+    return () => window.removeEventListener('beforeunload', onBeforeUnload);
+  }, [isDirty]);
 
   // Active Block ID in Visual Editor
   const [activeBlockId, setActiveBlockId] = useState<string>(DEFAULT_BOAT_AIRDOPES_800D.blocks[0].id);
@@ -29,6 +74,7 @@ export default function App() {
   const handleSelectPreset = (presetKey: string) => {
     const selected = AUDIO_PRODUCT_PRESETS[presetKey];
     if (selected) {
+      if (isDirty && !window.confirm('Loading a preset will replace your unsaved changes. Continue?')) return;
       setDocument(JSON.parse(JSON.stringify(selected)));
       setActiveBlockId(selected.blocks[0]?.id || '');
     }
@@ -57,6 +103,9 @@ export default function App() {
         onOpenExport={() => setIsExportModalOpen(true)}
         onPrint={handleExecutePrint}
         onSelectPreset={handleSelectPreset}
+        isDirty={isDirty}
+        onApplyChanges={handleApplyChanges}
+        onDiscardChanges={handleDiscardChanges}
       />
 
       {/* Screen 1 vs Screen 2 Layouts */}

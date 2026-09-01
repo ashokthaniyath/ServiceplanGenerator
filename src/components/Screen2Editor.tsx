@@ -569,6 +569,7 @@ export const Screen2Editor: React.FC<Screen2EditorProps> = ({
   // Handler to delete or reset selected element
   const handleDeleteSelectedElement = () => {
     if (!selectedElement) return;
+    if (!window.confirm(`Delete "${selectedElement.label}"? This cannot be undone.`)) return;
 
     if (selectedElement.fieldId.startsWith('content-el-') && selectedElement.itemId) {
       const targetElId = selectedElement.itemId;

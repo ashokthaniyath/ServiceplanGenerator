@@ -126,6 +126,15 @@ export const BlockEditors: React.FC<BlockEditorProps> = ({
     return copy;
   };
 
+  // Reusable arbitrary-position reorder helper for drag-and-drop
+  const reorderItem = <T,>(arr: T[], fromIndex: number, toIndex: number): T[] => {
+    if (fromIndex === toIndex || fromIndex < 0 || fromIndex >= arr.length || toIndex < 0 || toIndex >= arr.length) return arr;
+    const copy = [...arr];
+    const [removed] = copy.splice(fromIndex, 1);
+    copy.splice(toIndex, 0, removed);
+    return copy;
+  };
+
   // Reusable array duplication helper for dynamic tables
   const duplicateItem = <T extends { id?: string }>(arr: T[], index: number): T[] => {
     const item = arr[index];
@@ -246,6 +255,7 @@ export const BlockEditors: React.FC<BlockEditorProps> = ({
                         type="button"
                         onClick={(e) => {
                           e.stopPropagation();
+                          if (!window.confirm('Delete this element? This cannot be undone.')) return;
                           const updated = elements.filter(item => item.id !== el.id);
                           updateContent({ contentElements: updated });
                         }}
@@ -464,6 +474,7 @@ export const BlockEditors: React.FC<BlockEditorProps> = ({
                                           { id: 'r2', 'col-0': 'Charging Pin Resistance', 'col-1': '< 0.5 Ω (Clean Pogo)', 'col-2': 'Pass: Continuous' },
                                         ];
                                         if (currentRows.length <= 1) return;
+                                        if (!window.confirm('Delete this table row? This cannot be undone.')) return;
                                         const nextRows = currentRows.filter((_, idx) => idx !== rIdx);
                                         const updated = elements.map(item =>
                                           item.id === el.id ? { ...item, tableRows: nextRows } : item
@@ -700,6 +711,9 @@ export const BlockEditors: React.FC<BlockEditorProps> = ({
               onMoveRow={(idx, dir) => {
                 updateContent({ definitions: moveItem(defs, idx, dir) });
               }}
+              onReorderRow={(from, to) => {
+                updateContent({ definitions: reorderItem(defs, from, to) });
+              }}
               onDuplicateRow={(idx) => {
                 updateContent({ definitions: duplicateItem(defs, idx) });
               }}
@@ -767,6 +781,9 @@ export const BlockEditors: React.FC<BlockEditorProps> = ({
               }}
               onMoveRow={(idx, dir) => {
                 updateContent({ specifications: moveItem(specs, idx, dir) });
+              }}
+              onReorderRow={(from, to) => {
+                updateContent({ specifications: reorderItem(specs, from, to) });
               }}
               onDuplicateRow={(idx) => {
                 updateContent({ specifications: duplicateItem(specs, idx) });
@@ -900,6 +917,7 @@ export const BlockEditors: React.FC<BlockEditorProps> = ({
                   <button
                     type="button"
                     onClick={() => {
+                      if (!window.confirm('Delete this packaging item? This cannot be undone.')) return;
                       const updated = (block.content.packagingList || []).filter((_, i) => i !== idx);
                       updateContent({ packagingList: updated });
                     }}
@@ -938,6 +956,7 @@ export const BlockEditors: React.FC<BlockEditorProps> = ({
         };
 
         const handleDeleteVariant = (index: number) => {
+          if (!window.confirm(`Delete the "${variants[index]?.name || 'variant'}" colour variant? This cannot be undone.`)) return;
           const updated = variants.filter((_, i) => i !== index);
           updateContent({ colourVariants: updated });
         };
@@ -1262,6 +1281,9 @@ export const BlockEditors: React.FC<BlockEditorProps> = ({
               onMoveRow={(idx, dir) => {
                 updateContent({ functionalities: moveItem(fns, idx, dir) });
               }}
+              onReorderRow={(from, to) => {
+                updateContent({ functionalities: reorderItem(fns, from, to) });
+              }}
               onDuplicateRow={(idx) => {
                 updateContent({ functionalities: duplicateItem(fns, idx) });
               }}
@@ -1359,6 +1381,9 @@ export const BlockEditors: React.FC<BlockEditorProps> = ({
               onMoveRow={(idx, dir) => {
                 updateContent({ caseLedIndications: moveItem(caseLeds, idx, dir) });
               }}
+              onReorderRow={(from, to) => {
+                updateContent({ caseLedIndications: reorderItem(caseLeds, from, to) });
+              }}
               onDuplicateRow={(idx) => {
                 updateContent({ caseLedIndications: duplicateItem(caseLeds, idx) });
               }}
@@ -1446,6 +1471,9 @@ export const BlockEditors: React.FC<BlockEditorProps> = ({
               onMoveRow={(idx, dir) => {
                 updateContent({ earbudsLedIndications: moveItem(earbudLeds, idx, dir) });
               }}
+              onReorderRow={(from, to) => {
+                updateContent({ earbudsLedIndications: reorderItem(earbudLeds, from, to) });
+              }}
               onDuplicateRow={(idx) => {
                 updateContent({ earbudsLedIndications: duplicateItem(earbudLeds, idx) });
               }}
@@ -1520,6 +1548,9 @@ export const BlockEditors: React.FC<BlockEditorProps> = ({
               }}
               onMoveRow={(idx, dir) => {
                 updateContent({ chargingGuidelines: moveItem(guidelines, idx, dir) });
+              }}
+              onReorderRow={(from, to) => {
+                updateContent({ chargingGuidelines: reorderItem(guidelines, from, to) });
               }}
               onDuplicateRow={(idx) => {
                 updateContent({ chargingGuidelines: duplicateItem(guidelines, idx) });
@@ -1706,6 +1737,7 @@ export const BlockEditors: React.FC<BlockEditorProps> = ({
                         <button
                           type="button"
                           onClick={() => {
+                            if (!window.confirm('Delete this model row? This cannot be undone.')) return;
                             const updated = rows.filter((_, i) => i !== modelIdx);
                             syncRows(updated);
                           }}
@@ -1884,6 +1916,9 @@ export const BlockEditors: React.FC<BlockEditorProps> = ({
               onMoveRow={(idx, dir) => {
                 updateContent({ hearablesGuideSteps: moveItem(guideSteps, idx, dir) });
               }}
+              onReorderRow={(from, to) => {
+                updateContent({ hearablesGuideSteps: reorderItem(guideSteps, from, to) });
+              }}
               onDuplicateRow={(idx) => {
                 updateContent({ hearablesGuideSteps: duplicateItem(guideSteps, idx) });
               }}
@@ -1998,6 +2033,9 @@ export const BlockEditors: React.FC<BlockEditorProps> = ({
               }}
               onMoveRow={(idx, dir) => {
                 updateContent({ troubleshootingItems: moveItem(items, idx, dir) });
+              }}
+              onReorderRow={(from, to) => {
+                updateContent({ troubleshootingItems: reorderItem(items, from, to) });
               }}
               onDuplicateRow={(idx) => {
                 updateContent({ troubleshootingItems: duplicateItem(items, idx) });
@@ -2167,6 +2205,9 @@ export const BlockEditors: React.FC<BlockEditorProps> = ({
               onMoveRow={(idx, dir) => {
                 updateContent({ returnCodes: moveItem(codes, idx, dir) });
               }}
+              onReorderRow={(from, to) => {
+                updateContent({ returnCodes: reorderItem(codes, from, to) });
+              }}
               onDuplicateRow={(idx) => {
                 updateContent({ returnCodes: duplicateItem(codes, idx) });
               }}
@@ -2308,6 +2349,9 @@ export const BlockEditors: React.FC<BlockEditorProps> = ({
               }}
               onMoveRow={(idx, dir) => {
                 updateAnnexure(moveItem(items, idx, dir));
+              }}
+              onReorderRow={(from, to) => {
+                updateAnnexure(reorderItem(items, from, to));
               }}
               onDuplicateRow={(idx) => {
                 updateAnnexure(duplicateItem(items, idx));

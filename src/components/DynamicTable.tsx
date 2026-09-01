@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState, useRef } from 'react';
 import { 
   Plus, 
   Trash2, 
@@ -28,6 +28,7 @@ export interface DynamicTableProps<T = any> {
   onAddRow: () => void;
   onDeleteRow: (index: number) => void;
   onMoveRow?: (index: number, direction: 'up' | 'down') => void;
+  onReorderRow?: (fromIndex: number, toIndex: number) => void;
   onDuplicateRow?: (index: number) => void;
   addButtonLabel?: string;
   emptyMessage?: string;
@@ -46,6 +47,7 @@ export function DynamicTable<T extends { id?: string } = any>({
   onAddRow,
   onDeleteRow,
   onMoveRow,
+  onReorderRow,
   onDuplicateRow,
   addButtonLabel = 'Add Row',
   emptyMessage = 'No records in this table yet. Click Add Row to insert a new entry.',
@@ -54,6 +56,28 @@ export function DynamicTable<T extends { id?: string } = any>({
   actionsColumnWidth = 'w-24',
   className = '',
 }: DynamicTableProps<T>) {
+  // Drag-and-drop row reorder state (ref carries the source index; state is styling-only)
+  const dragIndexRef = useRef<number | null>(null);
+  const [dragIndex, setDragIndex] = useState<number | null>(null);
+  const [dropIndex, setDropIndex] = useState<number | null>(null);
+  const dndEnabled = !!onReorderRow;
+
+  const handleDrop = (targetIdx: number) => {
+    const from = dragIndexRef.current;
+    if (from !== null && onReorderRow && from !== targetIdx) {
+      onReorderRow(from, targetIdx);
+    }
+    dragIndexRef.current = null;
+    setDragIndex(null);
+    setDropIndex(null);
+  };
+
+  const confirmDelete = (idx: number) => {
+    if (window.confirm('Delete this row? This cannot be undone.')) {
+      onDeleteRow(idx);
+    }
+  };
+
   return (
     <div className={`space-y-3 ${className}`}>
       {/* Table Title & Action Bar */}
@@ -94,6 +118,7 @@ export function DynamicTable<T extends { id?: string } = any>({
           <table className="w-full text-left text-xs border-collapse">
             <thead className="bg-slate-100/90 border-b border-slate-200 text-slate-700 font-bold uppercase tracking-wider text-[10px] select-none">
               <tr>
+                {dndEnabled && <th className="p-2.5 w-7" title="Drag rows to reorder" />}
                 {columns.map((col, cIdx) => (
                   <th
                     key={col.key || cIdx}
@@ -120,8 +145,23 @@ export function DynamicTable<T extends { id?: string } = any>({
                   return (
                     <tr
                       key={key}
-                      className="hover:bg-slate-50/80 transition-colors group"
+                      onDragOver={dndEnabled ? (e) => { e.preventDefault(); setDropIndex(idx); } : undefined}
+                      onDrop={dndEnabled ? () => handleDrop(idx) : undefined}
+                      className={`hover:bg-slate-50/80 transition-colors group ${
+                        dropIndex === idx && dragIndex !== null && dragIndex !== idx ? 'bg-blue-50/70' : ''
+                      } ${dragIndex === idx ? 'opacity-40' : ''}`}
                     >
+                      {dndEnabled && (
+                        <td
+                          className="p-1 align-middle text-center cursor-grab active:cursor-grabbing"
+                          draggable
+                          onDragStart={(e) => { e.dataTransfer.effectAllowed = 'move'; dragIndexRef.current = idx; setDragIndex(idx); }}
+                          onDragEnd={() => { dragIndexRef.current = null; setDragIndex(null); setDropIndex(null); }}
+                          title="Drag to reorder"
+                        >
+                          <GripVertical className="w-3.5 h-3.5 text-slate-300 group-hover:text-slate-500 inline-block" />
+                        </td>
+                      )}
                       {columns.map((col, cIdx) => (
                         <td
                           key={col.key || cIdx}
@@ -177,7 +217,7 @@ export function DynamicTable<T extends { id?: string } = any>({
                             {/* Delete */}
                             <button
                               type="button"
-                              onClick={() => onDeleteRow(idx)}
+                              onClick={() => confirmDelete(idx)}
                               className="p-1 text-slate-400 hover:text-red-600 rounded hover:bg-red-50 transition-colors cursor-pointer"
                               title="Delete row"
                             >
@@ -192,7 +232,7 @@ export function DynamicTable<T extends { id?: string } = any>({
               ) : (
                 <tr>
                   <td
-                    colSpan={columns.length + (showActionsColumn ? 1 : 0)}
+                    colSpan={columns.length + (showActionsColumn ? 1 : 0) + (dndEnabled ? 1 : 0)}
                     className="p-8 text-center"
                   >
                     <div className="flex flex-col items-center justify-center text-slate-400 space-y-2">
