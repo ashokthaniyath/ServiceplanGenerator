@@ -10,15 +10,15 @@ import {
   Check
 } from 'lucide-react';
 import { ServicePlanDocument, AudioCategory, DeviceType } from '../types';
-import { sampleTemplates, getHearablesContentForProduct } from '../data/defaultPlans';
+import { getHearablesContentForProduct } from '../data/defaultPlans';
 import { resolveDocumentTokens } from '../utils/productTokens';
+import { getVariants, setVariantCount, updateVariantField, MAX_VARIANTS } from '../utils/variants';
 import { EarbudsCaseMockup } from './VisualMockups';
 
 interface Screen1SetupProps {
   document: ServicePlanDocument;
   setDocument: React.Dispatch<React.SetStateAction<ServicePlanDocument>>;
   onProceedToEditor: () => void;
-  onSelectPreset?: (presetKey: string) => void;
 }
 
 const CATEGORY_OPTIONS: { label: string; value: AudioCategory; description: string }[] = [
@@ -38,7 +38,6 @@ export const Screen1Setup: React.FC<Screen1SetupProps> = ({
   document,
   setDocument,
   onProceedToEditor,
-  onSelectPreset,
 }) => {
   const [selectedPreviewBlockId, setSelectedPreviewBlockId] = useState<string>(
     document.blocks[0]?.id || 'block-header-1'
@@ -69,14 +68,14 @@ export const Screen1Setup: React.FC<Screen1SetupProps> = ({
     }));
   };
 
-  const handleTemplateSelect = (templateId: string) => {
-    const template = sampleTemplates.find(t => t.id === templateId);
-    if (template) {
-      setDocument(JSON.parse(JSON.stringify(template.document)));
-      if (template.document.blocks.length > 0) {
-        setSelectedPreviewBlockId(template.document.blocks[0].id);
-      }
+  const variants = getVariants(document);
+
+  const handleVariantCountChange = (count: number) => {
+    if (count < variants.length) {
+      const removed = variants.slice(count).map(v => v.name).join(', ');
+      if (!window.confirm(`Reducing the variant count will permanently remove: ${removed}. Continue?`)) return;
     }
+    setDocument(prev => setVariantCount(prev, count));
   };
 
   const handleToggleBlock = (blockId: string) => {
@@ -132,26 +131,6 @@ export const Screen1Setup: React.FC<Screen1SetupProps> = ({
               Generate, standardize, and customize official service manuals and technical SOP documentation.<br className="hidden sm:inline" />
               Configure product specifications, select procedural blocks, and refine details in the visual editor.
             </p>
-          </div>
-        </div>
-
-        {/* Quick Presets Bar */}
-        <div className="flex flex-wrap items-center justify-between gap-2 p-3 bg-white rounded-xl border border-[#E5E7EB] shadow-xs text-xs">
-          <div className="flex items-center gap-2">
-            <span className="font-semibold text-gray-700">Quick Audio Presets:</span>
-            <span className="text-gray-400 text-[11px]">Load pre-configured blueprints:</span>
-          </div>
-          <div className="flex flex-wrap items-center gap-2">
-            {sampleTemplates.map(tpl => (
-              <button
-                key={tpl.id}
-                type="button"
-                onClick={() => handleTemplateSelect(tpl.id)}
-                className="px-3 py-1 bg-gray-50 hover:bg-gray-100 hover:border-gray-300 border border-gray-200 rounded-md text-xs font-medium text-gray-800 transition-colors"
-              >
-                {tpl.name}
-              </button>
-            ))}
           </div>
         </div>
 
@@ -220,6 +199,78 @@ export const Screen1Setup: React.FC<Screen1SetupProps> = ({
                 ))}
               </select>
             </div>
+          </div>
+        </div>
+
+        {/* Card 1b: Product Variants (Colour + EAN, driven by the shared colour_variants block) */}
+        <div className="bg-white rounded-xl border border-[#E5E7EB] p-6 shadow-xs space-y-4">
+          <div className="flex items-center justify-between border-b border-gray-100 pb-3">
+            <div className="flex items-center gap-2.5">
+              <span className="w-5 h-5 rounded-full bg-blue-700 text-white text-[11px] font-bold flex items-center justify-center">
+                V
+              </span>
+              <div>
+                <h2 className="font-bold text-gray-900 text-sm">Product Variants</h2>
+                <p className="text-[11px] text-gray-400">Colour variants and EAN codes — synced to sections 3.3 and the return-codes table</p>
+              </div>
+            </div>
+            <div className="flex items-center gap-2">
+              <label className="text-[11px] font-bold text-gray-500 uppercase tracking-wider">Product Variant</label>
+              <select
+                value={variants.length}
+                onChange={e => handleVariantCountChange(parseInt(e.target.value, 10))}
+                className="px-3 py-1.5 text-xs font-bold rounded-md border border-gray-200 bg-white text-gray-900 focus:border-blue-600 focus:ring-1 focus:ring-blue-600 outline-none cursor-pointer"
+                title="Number of product variants (1–10)"
+              >
+                {Array.from({ length: MAX_VARIANTS }, (_, i) => i + 1).map(n => (
+                  <option key={n} value={n}>{n}</option>
+                ))}
+              </select>
+            </div>
+          </div>
+
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
+            {variants.map((v, idx) => (
+              <div key={v.id} className="p-3 rounded-lg border border-gray-200 bg-gray-50/50 space-y-2">
+                <div className="flex items-center justify-between">
+                  <span className="text-[11px] font-bold text-gray-700 uppercase tracking-wider">Variant {idx + 1}</span>
+                  <span
+                    className="w-5 h-5 rounded-full border border-gray-300 shadow-2xs shrink-0"
+                    style={{ backgroundColor: v.colorHex }}
+                    title={`${v.name} (${v.colorHex})`}
+                  />
+                </div>
+                <div>
+                  <label className="block text-[10px] font-bold text-gray-500 uppercase mb-1">Color Variant</label>
+                  <div className="flex items-center gap-1.5">
+                    <input
+                      type="color"
+                      value={v.colorHex}
+                      onChange={e => setDocument(prev => updateVariantField(prev, v.id, { colorHex: e.target.value }))}
+                      className="w-7 h-7 p-0.5 rounded border border-gray-200 bg-white cursor-pointer shrink-0"
+                      title="Variant colour"
+                    />
+                    <input
+                      type="text"
+                      value={v.name}
+                      onChange={e => setDocument(prev => updateVariantField(prev, v.id, { name: e.target.value }))}
+                      placeholder="e.g. Raven Black"
+                      className="flex-1 min-w-0 px-2.5 py-1.5 text-xs font-medium rounded-md border border-gray-200 bg-white text-gray-900 focus:border-black focus:ring-1 focus:ring-black outline-none"
+                    />
+                  </div>
+                </div>
+                <div>
+                  <label className="block text-[10px] font-bold text-gray-500 uppercase mb-1">EAN</label>
+                  <input
+                    type="text"
+                    value={v.eanNumber || ''}
+                    onChange={e => setDocument(prev => updateVariantField(prev, v.id, { eanNumber: e.target.value }))}
+                    placeholder="e.g. 8905650132113"
+                    className="w-full px-2.5 py-1.5 text-xs font-mono rounded-md border border-gray-200 bg-white text-gray-900 focus:border-black focus:ring-1 focus:ring-black outline-none"
+                  />
+                </div>
+              </div>
+            ))}
           </div>
         </div>
 

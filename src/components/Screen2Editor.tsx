@@ -44,6 +44,7 @@ import { DocumentPDFView } from './DocumentPDFView';
 import { AddBlockModal } from './AddBlockModal';
 import { SectionCustomizerPanel } from './SectionCustomizerPanel';
 import { resolveTokens, resolveBlockTokens, unresolveBlockTokens, unresolveTokens } from '../utils/productTokens';
+import { getVariants, updateVariants } from '../utils/variants';
 
 interface Screen2EditorProps {
   document: ServicePlanDocument;
@@ -1158,6 +1159,9 @@ export const Screen2Editor: React.FC<Screen2EditorProps> = ({
                   onChange={handleUpdateBlockFromEditor}
                   selectedElement={selectedElement}
                   onSelectDocElement={handleSelectDocElement}
+                  variants={getVariants(document)}
+                  onUpdateVariants={(v) => setDocument(prev => updateVariants(prev, v))}
+                  productName={document.productName}
                 />
               </div>
             </div>

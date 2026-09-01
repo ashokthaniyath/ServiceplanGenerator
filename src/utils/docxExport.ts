@@ -19,6 +19,7 @@ import { toPng } from 'html-to-image';
 import { ServicePlanDocument, ServicePlanBlock, AnnexureItem } from '../types';
 import { validateDocumentIsolation } from '../data/defaultPlans';
 import { resolveDocumentTokens } from './productTokens';
+import { getReturnRows } from './variants';
 
 // Document body font — kept in sync with the on-screen preview (.pdf-document-root in index.css)
 const DOC_FONT = 'Open Sans';
@@ -1213,8 +1214,9 @@ export async function exportDocumentToDocx(rawDoc: ServicePlanDocument): Promise
   }
 
   // ==================== SECTION 6: ASIN / FSN CODES ====================
-  // Rendered only when the selected product defines return codes.
-  if (bCodes && bCodes.enabled && bCodes.content.returnCodes && bCodes.content.returnCodes.length > 0) {
+  // Rows are derived from the shared variants (colour + EAN) with legacy fallback.
+  const returnRows = getReturnRows(doc);
+  if (bCodes && bCodes.enabled && returnRows.length > 0) {
     docChildren.push(
       new Paragraph({
         spacing: { before: 200, after: 100 },
@@ -1240,7 +1242,7 @@ export async function exportDocumentToDocx(rawDoc: ServicePlanDocument): Promise
           createHeaderCell('FSN', 18),
         ],
       }),
-      ...bCodes.content.returnCodes.map(rc =>
+      ...returnRows.map(rc =>
         new TableRow({
           children: [
             createBodyCell(rc.productDesc, true, 40),

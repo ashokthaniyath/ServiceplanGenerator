@@ -21,7 +21,6 @@ interface HeaderProps {
   onOpenExportModal?: () => void;
   onPrint?: () => void;
   onQuickPrint?: () => void;
-  onSelectPreset?: (presetKey: string) => void;
   isDirty?: boolean;
   onApplyChanges?: () => void;
   onDiscardChanges?: () => void;

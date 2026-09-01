@@ -1,8 +1,5 @@
 import React, { useState, useMemo, useEffect } from 'react';
-import { 
-  DEFAULT_BOAT_AIRDOPES_800D, 
-  AUDIO_PRODUCT_PRESETS 
-} from './data/defaultPlans';
+import { DEFAULT_BOAT_AIRDOPES_800D } from './data/defaultPlans';
 import { ServicePlanDocument } from './types';
 import { Header } from './components/Header';
 import { Screen1Setup } from './components/Screen1Setup';
@@ -70,16 +67,6 @@ export default function App() {
   // Modals state
   const [isExportModalOpen, setIsExportModalOpen] = useState(false);
 
-  // Handle Preset Selection
-  const handleSelectPreset = (presetKey: string) => {
-    const selected = AUDIO_PRODUCT_PRESETS[presetKey];
-    if (selected) {
-      if (isDirty && !window.confirm('Loading a preset will replace your unsaved changes. Continue?')) return;
-      setDocument(JSON.parse(JSON.stringify(selected)));
-      setActiveBlockId(selected.blocks[0]?.id || '');
-    }
-  };
-
   // Run Grammar & Quality Audit using Gemini Endpoint
   // Execute native print — filename nomenclature: "{Product Name} - {SDK|Non-SDK}"
   const handleExecutePrint = () => {
@@ -102,7 +89,6 @@ export default function App() {
         onSetViewMode={setViewMode}
         onOpenExport={() => setIsExportModalOpen(true)}
         onPrint={handleExecutePrint}
-        onSelectPreset={handleSelectPreset}
         isDirty={isDirty}
         onApplyChanges={handleApplyChanges}
         onDiscardChanges={handleDiscardChanges}
@@ -119,7 +105,6 @@ export default function App() {
             const firstEnabled = document.blocks.find(b => b.enabled) || document.blocks[0];
             if (firstEnabled) setActiveBlockId(firstEnabled.id);
           }}
-          onSelectPreset={handleSelectPreset}
         />
       ) : (
         <Screen2Editor

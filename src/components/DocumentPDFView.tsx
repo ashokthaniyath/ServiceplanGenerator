@@ -6,6 +6,7 @@ import {
   AnnexureItem
 } from '../types';
 import { resolveDocumentTokens } from '../utils/productTokens';
+import { getReturnRows } from '../utils/variants';
 import { EarbudsCaseMockup, HearablesAppScreenMockup } from './VisualMockups';
 import { 
   FileText, 
@@ -41,12 +42,12 @@ export const DocumentPDFView: React.FC<DocumentPDFViewProps> = ({
   // Resolve <$productname$> tokens and preset literals against the live document
   // so the manually entered product name appears everywhere in preview and print.
   const document = useMemo(() => resolveDocumentTokens(rawDocument), [rawDocument]);
-  const [pageLayoutMode, setPageLayoutMode] = useState<'paginated' | 'continuous'>('continuous');
   const [currentPage, setCurrentPage] = useState<number>(1);
   const totalPages = 9;
 
-  // Split view hides the layout toolbar and always renders continuous flow
-  const effectiveLayoutMode = hideLayoutControls ? 'continuous' : pageLayoutMode;
+  // Full documents always render as exact PDF pages; the flow layout only remains
+  // for the single-block editor preview.
+  const usePaginated = !isSingleBlockPreview;
 
   // Maps each section type to the paginated page number on which it first appears,
   // so clicking a section in the sidebar can scroll the paginated preview to it.
@@ -66,24 +67,19 @@ export const DocumentPDFView: React.FC<DocumentPDFViewProps> = ({
     annexure: 9,
   };
 
-  // Auto-scroll the preview to the active section when it changes (driven from the
-  // section sidebar). Continuous flow scrolls to the exact section anchor; the
-  // paginated 18-page view scrolls to the page that contains the section.
+  // Auto-scroll the preview to the page containing the active section when it
+  // changes (driven from the section sidebar).
   useEffect(() => {
     if (!activeBlockId || isSingleBlockPreview) return;
     const scrollTimer = setTimeout(() => {
       const win = typeof window !== 'undefined' ? window : undefined;
       if (!win) return;
       let target: HTMLElement | null = null;
-      if (effectiveLayoutMode === 'continuous') {
-        target = win.document.getElementById(`pdf-section-${activeBlockId}`);
-      } else {
-        const block = document.blocks.find(b => b.id === activeBlockId);
-        const pageNo = block ? SECTION_TYPE_TO_PAGE[block.type] : undefined;
-        if (pageNo) {
-          setCurrentPage(pageNo);
-          target = win.document.getElementById(`pdf-page-${pageNo}`);
-        }
+      const block = document.blocks.find(b => b.id === activeBlockId);
+      const pageNo = block ? SECTION_TYPE_TO_PAGE[block.type] : undefined;
+      if (pageNo) {
+        setCurrentPage(pageNo);
+        target = win.document.getElementById(`pdf-page-${pageNo}`);
       }
       if (target) {
         target.scrollIntoView({ behavior: 'smooth', block: 'start' });
@@ -91,7 +87,7 @@ export const DocumentPDFView: React.FC<DocumentPDFViewProps> = ({
     }, 60);
     return () => clearTimeout(scrollTimer);
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [activeBlockId, effectiveLayoutMode]);
+  }, [activeBlockId]);
 
   const blocksToRender = isSingleBlockPreview && activeBlockId
     ? document.blocks.filter(b => b.id === activeBlockId && b.enabled)
@@ -107,7 +103,7 @@ export const DocumentPDFView: React.FC<DocumentPDFViewProps> = ({
       case 'colour_variants':
         return (block.content.colourVariants || []).length > 0;
       case 'return_codes':
-        return (block.content.returnCodes || []).length > 0;
+        return getReturnRows(document).length > 0;
       case 'weight_matrix': {
         const wmRows = block.content.weightMatrixRows && block.content.weightMatrixRows.length > 0
           ? block.content.weightMatrixRows
@@ -997,8 +993,8 @@ export const DocumentPDFView: React.FC<DocumentPDFViewProps> = ({
           {pageNumber === 9 && (
             <div className="space-y-4">
 
-              {/* Section 6 Return Codes — shown only when the selected product defines return codes */}
-              {(bCodes.content.returnCodes || []).length > 0 && (
+              {/* Section 6 Return Codes — derived from the shared variants (colour + EAN) */}
+              {getReturnRows(document).length > 0 && (
               <div className="pt-2">
                 <h2 
                   onClick={(e) => handleElementClick(e, bCodes.id, 'title', 'title', `${bCodes.sectionNumber} Return Codes`, bCodes.title, { isBold: true })}
@@ -1017,7 +1013,7 @@ export const DocumentPDFView: React.FC<DocumentPDFViewProps> = ({
                     </tr>
                   </thead>
                   <tbody>
-                    {(bCodes.content.returnCodes || []).map(code => (
+                    {getReturnRows(document).map(code => (
                       <tr key={code.id} className="border-b border-black last:border-b-0">
                         <td className="p-1.5 font-bold border-r border-black">{code.productDesc}</td>
                         <td className="p-1.5 border-r border-black font-mono">{code.ean}</td>
@@ -1126,32 +1122,14 @@ export const DocumentPDFView: React.FC<DocumentPDFViewProps> = ({
       style={{ fontSize: document.fontSize === 'compact' ? '12px' : document.fontSize === 'spacious' ? '15px' : '13px' }}
       onClick={() => onSelectDocElement && onSelectDocElement(null)}
     >
-      {/* Top Controls Toolbar: Paginated 18-Page vs Continuous Flow & Paper Spec */}
+      {/* Top Controls Toolbar: PDF page navigation & paper spec */}
       {!hideLayoutControls && (
       <div className="w-full max-w-4xl mb-4 bg-gray-50 border border-gray-200 rounded-lg p-2.5 shadow-xs flex flex-wrap items-center justify-between gap-3 text-xs z-30 print:hidden">
         <div className="flex items-center gap-2">
-          <button
-            onClick={() => setPageLayoutMode('paginated')}
-            className={`px-3 py-1.5 rounded-md font-semibold flex items-center gap-1.5 transition-colors ${
-              pageLayoutMode === 'paginated'
-                ? 'bg-blue-800 text-white shadow-xs'
-                : 'bg-white border border-gray-200 text-gray-700 hover:bg-gray-100'
-            }`}
-          >
+          <span className="px-3 py-1.5 rounded-md font-semibold flex items-center gap-1.5 bg-blue-800 text-white shadow-xs">
             <FileText className="w-3.5 h-3.5" />
             {totalPages}-Page Exact PDF Format
-          </button>
-          <button
-            onClick={() => setPageLayoutMode('continuous')}
-            className={`px-3 py-1.5 rounded-md font-semibold flex items-center gap-1.5 transition-colors ${
-              pageLayoutMode === 'continuous'
-                ? 'bg-blue-800 text-white shadow-xs'
-                : 'bg-white border border-gray-200 text-gray-700 hover:bg-gray-100'
-            }`}
-          >
-            <Layers className="w-3.5 h-3.5" />
-            Continuous Document Flow
-          </button>
+          </span>
         </div>
 
         {/* Paper Size & Padding Spec Badge */}
@@ -1161,7 +1139,7 @@ export const DocumentPDFView: React.FC<DocumentPDFViewProps> = ({
             A4 Portrait (210×297 mm) • 1″ Padding
           </span>
 
-          {pageLayoutMode === 'paginated' && (
+          {usePaginated && (
             <div className="flex items-center gap-1.5">
               <button
                 onClick={() => setCurrentPage(p => Math.max(1, p - 1))}
@@ -1202,8 +1180,8 @@ export const DocumentPDFView: React.FC<DocumentPDFViewProps> = ({
       </div>
       )}
 
-      {/* RENDER IN PAGINATED 18-PAGE MODE */}
-      {effectiveLayoutMode === 'paginated' ? (
+      {/* RENDER FULL DOCUMENT AS EXACT PDF PAGES */}
+      {usePaginated ? (
         <div 
           className="flex flex-col items-center w-full"
           style={{
@@ -1214,7 +1192,7 @@ export const DocumentPDFView: React.FC<DocumentPDFViewProps> = ({
           {Array.from({ length: totalPages }, (_, i) => i + 1).map(p => renderPaginatedPage(p))}
         </div>
       ) : (
-        /* RENDER IN CONTINUOUS FLOW MODE */
+        /* SINGLE-BLOCK EDITOR PREVIEW */
         <div 
           className="pdf-page shrink-0 grow-0 h-auto bg-white text-slate-900 border border-gray-300 shadow-md w-[210mm] max-w-full min-h-[297mm] p-6 sm:p-[1in] relative box-border rounded-xs print:shadow-none print:border-none print:p-0 print:max-w-none print:w-[210mm] print:min-h-[297mm]"
           style={{
@@ -1876,7 +1854,7 @@ export const DocumentPDFView: React.FC<DocumentPDFViewProps> = ({
                         </tr>
                       </thead>
                       <tbody className="divide-y divide-black">
-                        {(block.content.returnCodes || []).map(code => (
+                        {getReturnRows(document).map(code => (
                           <tr key={code.id}>
                             <td className="p-2 font-bold border-r border-black">{code.productDesc}</td>
                             <td className="p-2 border-r border-black font-mono">{code.ean}</td>

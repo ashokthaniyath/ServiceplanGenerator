@@ -33,6 +33,7 @@ import {
 import { EarbudsCaseMockup, HearablesAppScreenMockup } from './VisualMockups';
 import { DynamicTable } from './DynamicTable';
 import { AutoResizeTextarea } from './AutoResizeTextarea';
+import { ColourVariant } from '../types';
 
 interface BlockEditorProps {
   block: ServicePlanBlock;
@@ -40,6 +41,10 @@ interface BlockEditorProps {
   onOpenToneModal?: (text: string, onReplace: (newText: string) => void) => void;
   selectedElement?: SelectedDocElement | null;
   onSelectDocElement?: (element: SelectedDocElement | null) => void;
+  // Shared variants authority (colour_variants block) for cross-block consumers like return_codes
+  variants?: ColourVariant[];
+  onUpdateVariants?: (variants: ColourVariant[]) => void;
+  productName?: string;
 }
 
 export const BlockEditors: React.FC<BlockEditorProps> = ({ 
@@ -47,7 +52,10 @@ export const BlockEditors: React.FC<BlockEditorProps> = ({
   onChange, 
   onOpenToneModal,
   selectedElement,
-  onSelectDocElement
+  onSelectDocElement,
+  variants: sharedVariants,
+  onUpdateVariants,
+  productName,
 }) => {
   // Check if a field or item is currently active in the Customizer
   const isSelected = (fieldId: string, itemId?: string, subKey?: string) => {
@@ -1228,6 +1236,22 @@ export const BlockEditors: React.FC<BlockEditorProps> = ({
                         </div>
                       </div>
 
+                      {/* EAN — feeds the derived return-codes table */}
+                      <div className="pt-0.5">
+                        <span className="block text-[9px] font-bold text-slate-500 leading-none mb-1">EAN Number</span>
+                        <input
+                          type="text"
+                          value={variant.eanNumber || ''}
+                          onChange={e => {
+                            const updated = [...variants];
+                            updated[idx] = { ...updated[idx], eanNumber: e.target.value };
+                            updateContent({ colourVariants: updated });
+                          }}
+                          placeholder="e.g. 8905650132113"
+                          className="w-full px-2.5 py-1.5 text-[11px] font-mono text-slate-900 bg-white rounded-lg border border-slate-200 focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500"
+                        />
+                      </div>
+
                       {/* Smart Badge & Catalog Note */}
                       <div className="pt-1 flex items-center justify-between gap-2 border-t border-slate-100 text-[11px]">
                         <label className="flex items-center gap-1.5 font-semibold text-slate-700 cursor-pointer select-none whitespace-nowrap">
@@ -2177,6 +2201,92 @@ export const BlockEditors: React.FC<BlockEditorProps> = ({
 
       case 'return_codes': {
         const codes = block.content.returnCodes || [];
+
+        // When shared variants exist they are the single authority: rows derive from them.
+        if (sharedVariants && sharedVariants.length > 0 && onUpdateVariants) {
+          const patchVariant = (idx: number, patch: Partial<ColourVariant>) => {
+            const updated = [...sharedVariants];
+            updated[idx] = { ...updated[idx], ...patch };
+            onUpdateVariants(updated);
+          };
+          return (
+            <div className="space-y-5">
+              <DynamicTable
+                title="ASIN / FSN / EAN Barcode Codes"
+                subtitle="Rows are generated from Product Variants — descriptions follow the variant colour names; edit EAN/ASIN/FSN here or in the Variants section"
+                data={sharedVariants}
+                addButtonLabel="Add Variant"
+                onAddRow={() => {
+                  onUpdateVariants([
+                    ...sharedVariants,
+                    { id: `cv-${Date.now()}`, name: `Variant ${sharedVariants.length + 1}`, colorHex: '#334155', eanNumber: '', isSmartVariant: false },
+                  ]);
+                }}
+                onDeleteRow={(idx) => {
+                  onUpdateVariants(sharedVariants.filter((_, i) => i !== idx));
+                }}
+                onReorderRow={(from, to) => {
+                  const updated = [...sharedVariants];
+                  const [removed] = updated.splice(from, 1);
+                  updated.splice(to, 0, removed);
+                  onUpdateVariants(updated);
+                }}
+                columns={[
+                  {
+                    key: 'productDesc',
+                    header: 'Product Description',
+                    render: (v) => (
+                      <div className="flex items-center gap-2 px-2.5 py-1.5">
+                        <span className="w-3.5 h-3.5 rounded-full border border-slate-300 shrink-0" style={{ backgroundColor: v.colorHex }} />
+                        <span className="font-semibold text-slate-800 text-xs">{productName ? `${productName} – ${v.name}` : v.name}</span>
+                      </div>
+                    ),
+                  },
+                  {
+                    key: 'ean',
+                    header: 'EAN Number',
+                    render: (v, idx) => (
+                      <input
+                        type="text"
+                        value={v.eanNumber || ''}
+                        onChange={e => patchVariant(idx, { eanNumber: e.target.value })}
+                        placeholder="8905650130000"
+                        className="w-full px-2.5 py-1.5 font-mono text-slate-700 rounded border border-slate-200 focus:outline-none bg-white"
+                      />
+                    ),
+                  },
+                  {
+                    key: 'asin',
+                    header: 'ASIN (Amazon)',
+                    render: (v, idx) => (
+                      <input
+                        type="text"
+                        value={v.asin || ''}
+                        onChange={e => patchVariant(idx, { asin: e.target.value })}
+                        placeholder="B0CY000000"
+                        className="w-full px-2.5 py-1.5 font-mono text-slate-700 rounded border border-slate-200 focus:outline-none bg-white"
+                      />
+                    ),
+                  },
+                  {
+                    key: 'fsn',
+                    header: 'FSN (Flipkart)',
+                    render: (v, idx) => (
+                      <input
+                        type="text"
+                        value={v.fsn || ''}
+                        onChange={e => patchVariant(idx, { fsn: e.target.value })}
+                        placeholder="ACCGZ000000"
+                        className="w-full px-2.5 py-1.5 font-mono text-slate-700 rounded border border-slate-200 focus:outline-none bg-white"
+                      />
+                    ),
+                  },
+                ]}
+              />
+            </div>
+          );
+        }
+
         return (
           <div className="space-y-5">
             <DynamicTable
