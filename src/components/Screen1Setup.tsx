@@ -11,6 +11,7 @@ import {
 } from 'lucide-react';
 import { ServicePlanDocument, AudioCategory, DeviceType } from '../types';
 import { sampleTemplates, getHearablesContentForProduct } from '../data/defaultPlans';
+import { resolveDocumentTokens } from '../utils/productTokens';
 import { EarbudsCaseMockup } from './VisualMockups';
 
 interface Screen1SetupProps {
@@ -92,22 +93,25 @@ export const Screen1Setup: React.FC<Screen1SetupProps> = ({
     }));
   };
 
+  // Preview shows the resolved product name (tokens + preset literals) live as the user types.
+  const resolvedDocument = useMemo(() => resolveDocumentTokens(document), [document]);
+
   // Filter blocks by search query — selected (enabled) sections always sort to the top
   const filteredBlocks = useMemo(() => {
     const q = searchQuery.toLowerCase().trim();
     const matched = !q
-      ? document.blocks
-      : document.blocks.filter(b => 
+      ? resolvedDocument.blocks
+      : resolvedDocument.blocks.filter(b => 
           b.title.toLowerCase().includes(q) ||
           b.sectionNumber.toLowerCase().includes(q) ||
           b.archetype.toLowerCase().includes(q) ||
           (b.subtitle && b.subtitle.toLowerCase().includes(q))
         );
     return [...matched].sort((a, b) => Number(b.enabled) - Number(a.enabled));
-  }, [document.blocks, searchQuery]);
+  }, [resolvedDocument.blocks, searchQuery]);
 
   const activeBlocks = document.blocks.filter(b => b.enabled);
-  const selectedPreviewBlock = document.blocks.find(b => b.id === selectedPreviewBlockId) || document.blocks[0];
+  const selectedPreviewBlock = resolvedDocument.blocks.find(b => b.id === selectedPreviewBlockId) || resolvedDocument.blocks[0];
 
   return (
     <div className="min-h-[calc(100vh-3.8rem)] bg-[#F9FAFB] py-6 px-4 sm:px-6 lg:px-8 text-[#111827]">

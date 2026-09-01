@@ -43,6 +43,7 @@ import { BlockEditors } from './BlockEditors';
 import { DocumentPDFView } from './DocumentPDFView';
 import { AddBlockModal } from './AddBlockModal';
 import { SectionCustomizerPanel } from './SectionCustomizerPanel';
+import { resolveTokens } from '../utils/productTokens';
 
 interface Screen2EditorProps {
   document: ServicePlanDocument;
@@ -1025,7 +1026,7 @@ export const Screen2Editor: React.FC<Screen2EditorProps> = ({
               <span className="font-mono font-bold text-gray-400 shrink-0">§ {activeBlock?.sectionNumber}</span>
               <span className="shrink-0">/</span>
               <span className="text-gray-900 font-semibold truncate">
-                {activeBlock?.title}
+                {activeBlock ? resolveTokens(activeBlock.title, document) : ''}
               </span>
             </div>
 

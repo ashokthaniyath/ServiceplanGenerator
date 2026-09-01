@@ -1,10 +1,11 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import { 
   ServicePlanDocument, 
   ServicePlanBlock, 
   SelectedDocElement,
   AnnexureItem
 } from '../types';
+import { resolveDocumentTokens } from '../utils/productTokens';
 import { EarbudsCaseMockup, HearablesAppScreenMockup } from './VisualMockups';
 import { 
   FileText, 
@@ -29,7 +30,7 @@ interface DocumentPDFViewProps {
 }
 
 export const DocumentPDFView: React.FC<DocumentPDFViewProps> = ({
-  document,
+  document: rawDocument,
   activeBlockId,
   isSingleBlockPreview = false,
   scale = 1,
@@ -37,6 +38,9 @@ export const DocumentPDFView: React.FC<DocumentPDFViewProps> = ({
   selectedElement,
   onSelectDocElement,
 }) => {
+  // Resolve <$productname$> tokens and preset literals against the live document
+  // so the manually entered product name appears everywhere in preview and print.
+  const document = useMemo(() => resolveDocumentTokens(rawDocument), [rawDocument]);
   const [pageLayoutMode, setPageLayoutMode] = useState<'paginated' | 'continuous'>('continuous');
   const [currentPage, setCurrentPage] = useState<number>(1);
   const totalPages = 9;
@@ -565,7 +569,7 @@ export const DocumentPDFView: React.FC<DocumentPDFViewProps> = ({
                             key={cv.id}
                             className={`p-3 text-center align-middle w-1/3 ${idx < arr.length - 1 ? 'border-r border-black' : ''}`}
                           >
-                            <div className="flex justify-center items-center h-28 max-w-36 mx-auto" data-docx-capture={`variant-${cv.id}`}>
+                            <div className="flex justify-center items-center h-28 max-w-36 mx-auto overflow-hidden" data-docx-capture={`variant-${cv.id}`}>
                               <EarbudsCaseMockup
                                 name={cv.name}
                                 colorHex={cv.colorHex}
@@ -1499,12 +1503,12 @@ export const DocumentPDFView: React.FC<DocumentPDFViewProps> = ({
                                     onClick={(e) => handleElementClick(e, block.id, `variant-card-${variant.id}`, 'table-cell', `Variant Photo (${variant.name})`, variant.name, { itemId: variant.id, subKey: 'name' })}
                                     className={`p-3 text-center border-r border-black last:border-r-0 align-middle ${getClickableClass(block.id, `variant-card-${variant.id}`)}`}
                                   >
-                                    <div className="flex justify-center items-center h-28 max-w-36 mx-auto" data-docx-capture={`variant-${variant.id}`}>
+                                    <div className="flex justify-center items-center h-28 max-w-36 mx-auto overflow-hidden" data-docx-capture={`variant-${variant.id}`}>
                                       {variant.imageUrl ? (
                                         <img
                                           src={variant.imageUrl}
                                           alt={variant.name}
-                                          className="max-h-28 max-w-full object-contain drop-shadow-sm"
+                                          className="max-h-28 max-w-full object-contain border-0 outline-none mx-auto"
                                           referrerPolicy="no-referrer"
                                         />
                                       ) : (

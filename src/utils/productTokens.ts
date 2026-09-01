@@ -1,0 +1,68 @@
+import { ServicePlanDocument } from '../types';
+
+// Template tokens like <$productname$> resolved against the live document.
+const TOKEN_PATTERNS: [RegExp, (doc: ServicePlanDocument) => string][] = [
+  [/<\$\s*productname\s*\$>/gi, doc => doc.productName],
+  [/<\$\s*modelcode\s*\$>/gi, doc => doc.modelCode],
+  [/<\$\s*brand\s*\$>/gi, doc => doc.brand],
+];
+
+// Preset literals baked into template content — longest first so the
+// "boAt "-prefixed forms never produce a double prefix.
+const KNOWN_PRODUCT_LITERALS = [
+  'boAt Airdopes Prime 800D',
+  'Airdopes Prime 800D',
+  'boAt Airdopes 141 (Gen 3)',
+  'Airdopes 141 (Gen 3)',
+  'boAt Airdopes 141',
+  'Airdopes 141',
+  'Rockerz 330 Pro Max',
+  'Nirvana 751 ANC',
+].sort((a, b) => b.length - a.length);
+
+const escapeRegExp = (s: string) => s.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+const LITERALS_PATTERN = new RegExp(KNOWN_PRODUCT_LITERALS.map(escapeRegExp).join('|'), 'g');
+
+export function resolveTokens(text: string | undefined | null, doc: ServicePlanDocument): string {
+  if (!text) return '';
+  let out = text;
+  for (const [pattern, getValue] of TOKEN_PATTERNS) {
+    out = out.replace(pattern, getValue(doc) || '');
+  }
+  // Rebind preset literals so a manually renamed product reflects everywhere.
+  if (doc.productName) {
+    out = out.replace(LITERALS_PATTERN, doc.productName);
+  }
+  return out;
+}
+
+// Keys whose string values are identifiers/colors/URLs and must never be rewritten.
+const SKIP_KEYS = new Set(['id', 'type', 'archetype', 'imageUrl', 'colorHex', 'secondaryHex', 'accentColor', 'themeColor', 'hex', 'link', 'ean', 'asin', 'fsn']);
+
+function resolveDeep<T>(value: T, doc: ServicePlanDocument): T {
+  if (typeof value === 'string') return resolveTokens(value, doc) as unknown as T;
+  if (Array.isArray(value)) return value.map(v => resolveDeep(v, doc)) as unknown as T;
+  if (value && typeof value === 'object') {
+    const out: Record<string, unknown> = {};
+    for (const [k, v] of Object.entries(value as Record<string, unknown>)) {
+      out[k] = SKIP_KEYS.has(k) ? v : resolveDeep(v, doc);
+    }
+    return out as unknown as T;
+  }
+  return value;
+}
+
+// Returns a copy of the document with all tokens/preset literals in block
+// content and titles resolved to the manually entered product name.
+export function resolveDocumentTokens(doc: ServicePlanDocument): ServicePlanDocument {
+  return {
+    ...doc,
+    watermark: resolveTokens(doc.watermark, doc),
+    blocks: doc.blocks.map(b => ({
+      ...b,
+      title: resolveTokens(b.title, doc),
+      subtitle: resolveTokens(b.subtitle, doc),
+      content: resolveDeep(b.content, doc),
+    })),
+  };
+}

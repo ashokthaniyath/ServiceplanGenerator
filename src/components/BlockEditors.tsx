@@ -1606,7 +1606,7 @@ export const BlockEditors: React.FC<BlockEditorProps> = ({
           : [
               {
                 id: 'wm-default-1',
-                product: block.content.weightMatrix?.product || 'boAt Airdopes Prime 800D',
+                product: block.content.weightMatrix?.product || '<$productname$>',
                 length: block.content.weightMatrix?.length || '24.9 mm',
                 breadth: block.content.weightMatrix?.breadth || '20.77 mm',
                 height: block.content.weightMatrix?.height || '32.2 mm',

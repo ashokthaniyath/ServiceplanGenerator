@@ -40,7 +40,7 @@ export const EarbudsCaseMockup: React.FC<EarbudsCaseMockupProps> = ({
           <img
             src={resolvedImageUrl}
             alt={name}
-            className="w-full h-full object-contain drop-shadow-sm"
+            className="w-full h-full object-contain border-0 outline-none mx-auto"
             referrerPolicy="no-referrer"
             onError={() => {
               if (!imageUrl) setAssetFailed(true);

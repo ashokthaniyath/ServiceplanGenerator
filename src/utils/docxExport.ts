@@ -18,6 +18,7 @@ import { saveAs } from 'file-saver';
 import { toPng } from 'html-to-image';
 import { ServicePlanDocument, ServicePlanBlock, AnnexureItem } from '../types';
 import { validateDocumentIsolation } from '../data/defaultPlans';
+import { resolveDocumentTokens } from './productTokens';
 
 // Document body font — kept in sync with the on-screen preview (.pdf-document-root in index.css)
 const DOC_FONT = 'Open Sans';
@@ -348,7 +349,10 @@ async function appendCustomContentElements(children: (Paragraph | Table)[], bloc
   }
 }
 
-export async function exportDocumentToDocx(doc: ServicePlanDocument): Promise<void> {
+export async function exportDocumentToDocx(rawDoc: ServicePlanDocument): Promise<void> {
+  // Resolve <$productname$> tokens and preset literals so the manually entered
+  // product name appears throughout the downloaded document.
+  const doc = resolveDocumentTokens(rawDoc);
   // Validate that the exported document carries only the selected product's and mode's
   // content. Preview and DOCX are generated from this exact same document model.
   const isolationViolations = validateDocumentIsolation(doc);
