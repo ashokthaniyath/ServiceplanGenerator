@@ -1179,63 +1179,6 @@ export const BlockEditors: React.FC<BlockEditorProps> = ({
                         />
                       </div>
 
-                      {/* Color Pickers (Primary & Trim) */}
-                      <div className="grid grid-cols-2 gap-2 pt-0.5">
-                        <div className="flex items-center gap-1.5 bg-slate-50 p-1.5 rounded-lg border border-slate-200 min-w-0 overflow-hidden">
-                          <input
-                            type="color"
-                            value={variant.colorHex}
-                            onChange={e => {
-                              const updated = [...variants];
-                              updated[idx] = { ...updated[idx], colorHex: e.target.value };
-                              updateContent({ colourVariants: updated });
-                            }}
-                            className="w-5 h-5 rounded cursor-pointer border border-slate-300 p-0 shrink-0"
-                            title="Pick Primary Color"
-                          />
-                          <div className="min-w-0 flex-1 overflow-hidden">
-                            <span className="block text-[9px] font-bold text-slate-500 leading-none mb-0.5 whitespace-nowrap truncate">Primary</span>
-                            <input
-                              type="text"
-                              value={variant.colorHex}
-                              onChange={e => {
-                                const updated = [...variants];
-                                updated[idx] = { ...updated[idx], colorHex: e.target.value };
-                                updateContent({ colourVariants: updated });
-                              }}
-                              className="w-full text-[10px] font-mono font-semibold uppercase bg-transparent text-slate-800 focus:outline-none truncate"
-                            />
-                          </div>
-                        </div>
-
-                        <div className="flex items-center gap-1.5 bg-slate-50 p-1.5 rounded-lg border border-slate-200 min-w-0 overflow-hidden">
-                          <input
-                            type="color"
-                            value={variant.secondaryHex || '#334155'}
-                            onChange={e => {
-                              const updated = [...variants];
-                              updated[idx] = { ...updated[idx], secondaryHex: e.target.value };
-                              updateContent({ colourVariants: updated });
-                            }}
-                            className="w-5 h-5 rounded cursor-pointer border border-slate-300 p-0 shrink-0"
-                            title="Pick Accent Trim Color"
-                          />
-                          <div className="min-w-0 flex-1 overflow-hidden">
-                            <span className="block text-[9px] font-bold text-slate-500 leading-none mb-0.5 whitespace-nowrap truncate">Trim</span>
-                            <input
-                              type="text"
-                              value={variant.secondaryHex || '#334155'}
-                              onChange={e => {
-                                const updated = [...variants];
-                                updated[idx] = { ...updated[idx], secondaryHex: e.target.value };
-                                updateContent({ colourVariants: updated });
-                              }}
-                              className="w-full text-[10px] font-mono font-semibold uppercase bg-transparent text-slate-800 focus:outline-none truncate"
-                            />
-                          </div>
-                        </div>
-                      </div>
-
                       {/* EAN — feeds the derived return-codes table */}
                       <div className="pt-0.5">
                         <span className="block text-[9px] font-bold text-slate-500 leading-none mb-1">EAN Number</span>
