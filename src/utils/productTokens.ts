@@ -58,11 +58,47 @@ export function resolveDocumentTokens(doc: ServicePlanDocument): ServicePlanDocu
   return {
     ...doc,
     watermark: resolveTokens(doc.watermark, doc),
-    blocks: doc.blocks.map(b => ({
-      ...b,
-      title: resolveTokens(b.title, doc),
-      subtitle: resolveTokens(b.subtitle, doc),
-      content: resolveDeep(b.content, doc),
-    })),
+    blocks: doc.blocks.map(b => resolveBlockTokens(b, doc)),
+  };
+}
+
+// Resolves a single block for display in editors.
+export function resolveBlockTokens<T extends { title: string; subtitle?: string; content: unknown }>(block: T, doc: ServicePlanDocument): T {
+  return {
+    ...block,
+    title: resolveTokens(block.title, doc),
+    subtitle: resolveTokens(block.subtitle, doc),
+    content: resolveDeep(block.content, doc),
+  };
+}
+
+// Inverse: canonicalizes concrete product-name text back to the token so
+// future renames keep propagating after the user edits resolved text.
+export function unresolveTokens(text: string | undefined | null, doc: ServicePlanDocument): string {
+  if (!text) return '';
+  // Short names would over-match ordinary words; only canonicalize real names.
+  if (!doc.productName || doc.productName.trim().length < 4) return text;
+  return text.split(doc.productName).join('<$productname$>');
+}
+
+function unresolveDeep<T>(value: T, doc: ServicePlanDocument): T {
+  if (typeof value === 'string') return unresolveTokens(value, doc) as unknown as T;
+  if (Array.isArray(value)) return value.map(v => unresolveDeep(v, doc)) as unknown as T;
+  if (value && typeof value === 'object') {
+    const out: Record<string, unknown> = {};
+    for (const [k, v] of Object.entries(value as Record<string, unknown>)) {
+      out[k] = SKIP_KEYS.has(k) ? v : unresolveDeep(v, doc);
+    }
+    return out as unknown as T;
+  }
+  return value;
+}
+
+export function unresolveBlockTokens<T extends { title: string; subtitle?: string; content: unknown }>(block: T, doc: ServicePlanDocument): T {
+  return {
+    ...block,
+    title: unresolveTokens(block.title, doc),
+    subtitle: unresolveTokens(block.subtitle, doc),
+    content: unresolveDeep(block.content, doc),
   };
 }

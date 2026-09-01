@@ -43,7 +43,7 @@ import { BlockEditors } from './BlockEditors';
 import { DocumentPDFView } from './DocumentPDFView';
 import { AddBlockModal } from './AddBlockModal';
 import { SectionCustomizerPanel } from './SectionCustomizerPanel';
-import { resolveTokens } from '../utils/productTokens';
+import { resolveTokens, resolveBlockTokens, unresolveBlockTokens, unresolveTokens } from '../utils/productTokens';
 
 interface Screen2EditorProps {
   document: ServicePlanDocument;
@@ -180,14 +180,17 @@ export const Screen2Editor: React.FC<Screen2EditorProps> = ({
   const activeBlock = document.blocks.find(b => b.id === activeBlockId) || document.blocks[0];
 
   // Selected document element for live document clicking & customizer synchronization
-  const [selectedElement, setSelectedElement] = useState<SelectedDocElement | null>({
-    blockId: activeBlock?.id || '',
-    fieldId: 'title',
-    elementType: 'title',
-    label: 'Title Text',
-    text: activeBlock?.title || '',
-    isBold: true,
-    textCase: activeBlock?.title === activeBlock?.title?.toUpperCase() ? 'uppercase' : 'capitalize',
+  const [selectedElement, setSelectedElement] = useState<SelectedDocElement | null>(() => {
+    const displayTitle = resolveTokens(activeBlock?.title || '', document);
+    return {
+      blockId: activeBlock?.id || '',
+      fieldId: 'title',
+      elementType: 'title',
+      label: 'Title Text',
+      text: displayTitle,
+      isBold: true,
+      textCase: displayTitle === displayTitle.toUpperCase() ? 'uppercase' : 'capitalize',
+    };
   });
 
   // When activeBlock changes from Lane 1, sync selectedElement if needed
@@ -195,14 +198,15 @@ export const Screen2Editor: React.FC<Screen2EditorProps> = ({
     setActiveBlockId(blockId);
     const target = document.blocks.find(b => b.id === blockId);
     if (target) {
+      const displayTitle = resolveTokens(target.title, document);
       setSelectedElement({
         blockId: target.id,
         fieldId: 'title',
         elementType: 'title',
-        label: `Title (${target.title})`,
-        text: target.title,
+        label: `Title (${displayTitle})`,
+        text: displayTitle,
         isBold: true,
-        textCase: target.title === target.title.toUpperCase() ? 'uppercase' : 'capitalize',
+        textCase: displayTitle === displayTitle.toUpperCase() ? 'uppercase' : 'capitalize',
       });
     }
   };
@@ -245,6 +249,8 @@ export const Screen2Editor: React.FC<Screen2EditorProps> = ({
     }
 
     // 2. Otherwise update the specific block and field
+    // Canonicalize concrete product-name text back to the token so renames keep propagating.
+    newText = unresolveTokens(newText, document);
     setDocument(prev => {
       const updatedBlocks = prev.blocks.map(block => {
         if (block.id !== targetBlockId) return block;
@@ -586,7 +592,7 @@ export const Screen2Editor: React.FC<Screen2EditorProps> = ({
         fieldId: 'title',
         elementType: 'title',
         label: 'Title Text',
-        text: activeBlock.title,
+        text: resolveTokens(activeBlock.title, document),
         isBold: true,
       });
     } else if (selectedElement.fieldId.startsWith('feature-') && selectedElement.itemId) {
@@ -663,7 +669,7 @@ export const Screen2Editor: React.FC<Screen2EditorProps> = ({
 
   // Filtered blocks in Lane 1
   const filteredBlocks = document.blocks.filter(b =>
-    b.title.toLowerCase().includes(searchFilter.toLowerCase()) ||
+    resolveTokens(b.title, document).toLowerCase().includes(searchFilter.toLowerCase()) ||
     b.sectionNumber.toLowerCase().includes(searchFilter.toLowerCase()) ||
     b.archetype.toLowerCase().includes(searchFilter.toLowerCase())
   );
@@ -674,6 +680,12 @@ export const Screen2Editor: React.FC<Screen2EditorProps> = ({
       ...prev,
       blocks: prev.blocks.map(b => (b.id === updatedBlock.id ? updatedBlock : b)),
     }));
+  };
+
+  // Editors display the resolved product name; edits are canonicalized back to
+  // <$productname$> so future renames keep propagating.
+  const handleUpdateBlockFromEditor = (updatedBlock: ServicePlanBlock) => {
+    handleUpdateBlock(unresolveBlockTokens(updatedBlock, document));
   };
 
   // Apply accent color to single section or globally across all sections
@@ -923,13 +935,13 @@ export const Screen2Editor: React.FC<Screen2EditorProps> = ({
                       />
                       <input
                         type="text"
-                        value={block.title}
+                        value={resolveTokens(block.title, document)}
                         onClick={e => e.stopPropagation()}
                         onFocus={() => handleSelectBlockFromLane1(block.id)}
                         onChange={e =>
                           setDocument(prev => ({
                             ...prev,
-                            blocks: prev.blocks.map(b => (b.id === block.id ? { ...b, title: e.target.value } : b)),
+                            blocks: prev.blocks.map(b => (b.id === block.id ? { ...b, title: unresolveTokens(e.target.value, prev) } : b)),
                           }))
                         }
                         className="flex-1 min-w-0 px-1 py-0.5 text-xs font-semibold text-gray-900 bg-transparent border border-transparent hover:border-gray-200 focus:border-blue-500 focus:bg-white rounded outline-none transition-colors truncate"
@@ -1141,8 +1153,8 @@ export const Screen2Editor: React.FC<Screen2EditorProps> = ({
 
                 {/* Render Dedicated Block Editor */}
                 <BlockEditors
-                  block={activeBlock}
-                  onChange={handleUpdateBlock}
+                  block={resolveBlockTokens(activeBlock, document)}
+                  onChange={handleUpdateBlockFromEditor}
                   selectedElement={selectedElement}
                   onSelectDocElement={handleSelectDocElement}
                 />
@@ -1278,8 +1290,8 @@ export const Screen2Editor: React.FC<Screen2EditorProps> = ({
 
                 {/* Exact Section & Content Element Customizer (from user mockup) */}
                 <SectionCustomizerPanel
-                  block={activeBlock}
-                  onChange={handleUpdateBlock}
+                  block={resolveBlockTokens(activeBlock, document)}
+                  onChange={handleUpdateBlockFromEditor}
                   selectedElement={selectedElement}
                   onSelectElement={setSelectedElement}
                   onUpdateSelectedElementText={handleUpdateSelectedElementText}
