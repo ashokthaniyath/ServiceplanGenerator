@@ -959,7 +959,6 @@ export const BlockEditors: React.FC<BlockEditorProps> = ({
             <div className="flex justify-between items-center">
               <div>
                 <h3 className="text-sm font-bold text-slate-900">In-Box Packaging Contents</h3>
-                <p className="text-xs text-slate-500">List of standard accessories provided inside the sales box</p>
               </div>
               <button
                 type="button"
@@ -1090,9 +1089,6 @@ export const BlockEditors: React.FC<BlockEditorProps> = ({
                     {variants.length} {variants.length === 1 ? 'Variant' : 'Variants'}
                   </span>
                 </h3>
-                <p className="text-xs text-slate-500">
-                  Clean 3-column finish gallery. Replace images individually or preview dynamic SVG mockups.
-                </p>
               </div>
               <button
                 type="button"
@@ -1393,7 +1389,6 @@ export const BlockEditors: React.FC<BlockEditorProps> = ({
           <div className="space-y-6">
             <div>
               <h3 className="text-sm font-bold text-slate-900">Case & Earbuds LED Indication Matrices</h3>
-              <p className="text-xs text-slate-500">Diagnostic LED lighting behaviors for technicians and QA inspection</p>
             </div>
 
             {/* Case LED Table */}
@@ -1738,7 +1733,6 @@ export const BlockEditors: React.FC<BlockEditorProps> = ({
             <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
               <div>
                 <h3 className="text-sm font-bold text-slate-900">Physical Dimensions & Weight Matrix</h3>
-                <p className="text-xs text-slate-500">Certified lab measurements with Title on the left and Content on the right</p>
               </div>
               <button
                 type="button"
@@ -1886,7 +1880,6 @@ export const BlockEditors: React.FC<BlockEditorProps> = ({
             <div className="flex justify-between items-center">
               <div>
                 <h3 className="text-sm font-bold text-slate-900">Hearables Companion App Functionalities</h3>
-                <p className="text-xs text-slate-500">Sound Tab, Touch Tab, System Tab, and Smart Diagnostics</p>
               </div>
             </div>
 
@@ -2613,7 +2606,6 @@ export const BlockEditors: React.FC<BlockEditorProps> = ({
             <div className="flex items-center justify-between">
               <div>
                 <h3 className="text-sm font-bold text-slate-900">Custom Section Elements</h3>
-                <p className="text-xs text-slate-500">Add and customize modular content blocks using the customizer on the right</p>
               </div>
             </div>
 

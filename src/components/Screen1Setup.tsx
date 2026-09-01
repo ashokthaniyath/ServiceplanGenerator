@@ -143,7 +143,6 @@ export const Screen1Setup: React.FC<Screen1SetupProps> = ({
               </span>
               <div>
                 <h2 className="font-bold text-gray-900 text-sm">Product Information</h2>
-                <p className="text-[11px] text-gray-400">Device model identification and classification</p>
               </div>
             </div>
             <span className="text-[11px] text-gray-400 font-mono">Step 1 of 2</span>
@@ -211,7 +210,6 @@ export const Screen1Setup: React.FC<Screen1SetupProps> = ({
               </span>
               <div>
                 <h2 className="font-bold text-gray-900 text-sm">Product Variants</h2>
-                <p className="text-[11px] text-gray-400">Colour variants and EAN codes — synced to sections 3.3 and the return-codes table</p>
               </div>
             </div>
             <div className="flex items-center gap-2">
@@ -274,9 +272,6 @@ export const Screen1Setup: React.FC<Screen1SetupProps> = ({
                 <h2 className="font-bold text-gray-900 text-sm">
                   Select Core Service Plan Sections & Live Preview
                 </h2>
-                <p className="text-[11px] text-gray-400">
-                  Select sections to include in the service plan and review sample contents on the right
-                </p>
               </div>
             </div>
 
@@ -380,9 +375,6 @@ export const Screen1Setup: React.FC<Screen1SetupProps> = ({
                                 {block.title}
                               </span>
                             </div>
-                            {block.subtitle && (
-                              <p className="text-[11px] text-gray-400 truncate mt-0.5">{block.subtitle}</p>
-                            )}
                           </div>
                         </div>
 
@@ -433,9 +425,6 @@ export const Screen1Setup: React.FC<Screen1SetupProps> = ({
                 <div className="flex-1 overflow-y-auto pr-1 text-xs space-y-3 bg-white p-3.5 rounded border border-gray-200">
                   <div className="border-b border-gray-100 pb-2">
                     <h4 className="font-bold text-gray-900 text-sm mt-0.5">{selectedPreviewBlock?.title}</h4>
-                    {selectedPreviewBlock?.subtitle && (
-                      <p className="text-[11px] text-gray-500">{selectedPreviewBlock.subtitle}</p>
-                    )}
                   </div>
 
                   {/* Header & Overview Preview */}

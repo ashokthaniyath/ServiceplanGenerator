@@ -106,9 +106,6 @@ export function DynamicTable<T extends { id?: string } = any>({
                 </span>
               </div>
             )}
-            {(subtitle || description) && (
-              <p className="text-xs text-slate-500 mt-0.5">{subtitle || description}</p>
-            )}
           </div>
 
           <div className="flex items-center gap-2 self-start sm:self-auto">
