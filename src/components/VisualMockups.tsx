@@ -167,11 +167,11 @@ export const HearablesAppScreenMockup: React.FC<{
   // A user-uploaded picture always takes priority and is what appears in the final document.
   if (imageUrl) {
     return (
-      <div className={`w-full max-w-[168px] sm:max-w-[178px] mx-auto ${className}`}>
+      <div className={`w-full max-w-42 sm:max-w-44.5 mx-auto ${className}`}>
         <img
           src={imageUrl}
           alt={title}
-          className="w-full h-[325px] object-contain rounded-xl border border-slate-200 bg-white"
+          className="w-full h-81.25 object-contain rounded-xl border border-slate-200 bg-white"
           referrerPolicy="no-referrer"
         />
       </div>
@@ -180,11 +180,11 @@ export const HearablesAppScreenMockup: React.FC<{
 
   // Otherwise render the built-in vector mockup (crisp, complete, resolution-independent).
   return (
-    <div data-mockup={tabType} className={`w-full max-w-[168px] sm:max-w-[178px] h-[325px] bg-slate-950 text-white rounded-xl p-2.5 border border-slate-800 shadow-sm flex flex-col font-sans text-xs select-none mx-auto ${className}`}>
+    <div data-mockup={tabType} className={`w-full max-w-42 sm:max-w-44.5 h-81.25 bg-slate-950 text-white rounded-xl p-2.5 border border-slate-800 shadow-sm flex flex-col font-sans text-xs select-none mx-auto ${className}`}>
       {/* Top Status Bar */}
       <div className="flex justify-between items-center text-[9px] text-slate-400 pb-1.5 border-b border-slate-800">
         <span>12:30</span>
-        <span className="font-semibold text-slate-200 text-[9px] truncate max-w-[90px]">boAt Hearables</span>
+        <span className="font-semibold text-slate-200 text-[9px] truncate max-w-22.5">boAt Hearables</span>
         <div className="flex items-center gap-1">
           <span className="w-1.5 h-1.5 rounded-full bg-emerald-500"></span>
           <span className="text-[8px]">90%</span>
