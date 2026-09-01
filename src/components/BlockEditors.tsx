@@ -2550,9 +2550,7 @@ export const BlockEditors: React.FC<BlockEditorProps> = ({
               }}
               onRenameColumn={renameCol}
               onAddColumn={addExtraColumn}
-              onDeleteColumn={(k) => hideCol(k,
-                k === 'ann.resourceLink' ? { annexureItems: items.map(i => ({ ...i, resourceLink: '' })) }
-                : { annexureItems: items.map(i => ({ ...i, additionalLink: '' })) })}
+              onDeleteColumn={(k) => hideCol(k, { annexureItems: items.map(i => ({ ...i, resourceLink: '' })) })}
               columns={[
                 {
                   key: 'index',
@@ -2591,42 +2589,6 @@ export const BlockEditors: React.FC<BlockEditorProps> = ({
                       {item.resourceLink && item.resourceLink.startsWith('http') && (
                         <a
                           href={item.resourceLink}
-                          target="_blank"
-                          rel="noreferrer"
-                          className="inline-flex items-center gap-1 text-[10px] text-blue-600 hover:text-blue-800 font-semibold px-1 py-0.5"
-                          title="Open URL in new tab"
-                        >
-                          <ExternalLink className="w-3 h-3" />
-                          <span>Test Link</span>
-                        </a>
-                      )}
-                    </div>
-                  ),
-                },
-                {
-                  key: 'additionalLink',
-                  colKey: 'ann.additionalLink',
-                  header: colT('ann.additionalLink', 'Additional Link'),
-                  width: 'w-2/5 min-w-[220px]',
-                  render: (item, idx) => (
-                    <div className="space-y-1.5">
-                      <div className="relative">
-                        <input
-                          type="text"
-                          value={item.additionalLink || ''}
-                          onChange={e => {
-                            const updated = [...items];
-                            updated[idx] = { ...updated[idx], additionalLink: e.target.value };
-                            updateAnnexure(updated);
-                          }}
-                          className="w-full pl-7 pr-2 py-1.5 text-xs font-mono text-blue-950 rounded-lg border border-slate-300 focus:outline-none bg-white"
-                          placeholder="https:// (optional)"
-                        />
-                        <Link2 className="w-3.5 h-3.5 text-slate-400 absolute left-2 top-2.5" />
-                      </div>
-                      {item.additionalLink && item.additionalLink.startsWith('http') && (
-                        <a
-                          href={item.additionalLink}
                           target="_blank"
                           rel="noreferrer"
                           className="inline-flex items-center gap-1 text-[10px] text-blue-600 hover:text-blue-800 font-semibold px-1 py-0.5"

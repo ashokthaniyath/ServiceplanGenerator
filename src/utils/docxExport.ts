@@ -1299,22 +1299,20 @@ export async function exportDocumentToDocx(rawDoc: ServicePlanDocument): Promise
         tableHeader: true,
         children: [
           createHeaderCell('S.No.', 10),
-          createHeaderCell('Link', 45),
-          createHeaderCell('Additional Link', 45),
+          createHeaderCell('Link', 90),
         ],
       }),
       ...annexureItems.map((item, idx) =>
         new TableRow({
           children: [
             createBodyCell(`${bAnnexure.sectionNumber || '8'}.${idx + 1}`, true, 10),
-            createBodyCell(item.resourceLink || 'N/A', false, 45),
-            createBodyCell(item.additionalLink || ' ', false, 45),
+            createBodyCell(item.resourceLink || 'N/A', false, 90),
           ],
         })
       ),
     ];
 
-    docChildren.push(buildTable([10, 45, 45], annexureRows));
+    docChildren.push(buildTable([10, 90], annexureRows));
     docChildren.push(new Paragraph({ spacing: { after: 160 }, children: [] }));
   }
 
