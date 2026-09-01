@@ -34,6 +34,7 @@ export interface DynamicTableProps<T = any> {
   onDuplicateRow?: (index: number) => void;
   onRenameColumn?: (colKey: string, newTitle: string) => void;
   onDeleteColumn?: (colKey: string) => void;
+  onAddColumn?: () => void;
   addButtonLabel?: string;
   emptyMessage?: string;
   headerRightContent?: React.ReactNode;
@@ -55,6 +56,7 @@ export function DynamicTable<T extends { id?: string } = any>({
   onDuplicateRow,
   onRenameColumn,
   onDeleteColumn,
+  onAddColumn,
   addButtonLabel = 'Add Row',
   emptyMessage = 'No records in this table yet. Click Add Row to insert a new entry.',
   headerRightContent,
@@ -111,6 +113,17 @@ export function DynamicTable<T extends { id?: string } = any>({
 
           <div className="flex items-center gap-2 self-start sm:self-auto">
             {headerRightContent}
+            {onAddColumn && (
+              <button
+                type="button"
+                onClick={onAddColumn}
+                className="px-3 py-1.5 bg-white hover:bg-slate-50 text-slate-700 border border-slate-300 rounded-lg text-xs font-bold flex items-center gap-1.5 shadow-2xs transition-colors cursor-pointer shrink-0"
+                title="Add a new column to this table"
+              >
+                <Plus className="w-3.5 h-3.5 stroke-[2.5]" />
+                <span>Add Column</span>
+              </button>
+            )}
             <button
               type="button"
               onClick={onAddRow}

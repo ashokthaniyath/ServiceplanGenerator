@@ -198,6 +198,9 @@ export interface ServicePlanBlock {
     // Column customization for typed tables — keyed by semantic column key
     columnTitles?: Record<string, string>;
     hiddenColumns?: string[];
+    // User-added columns for typed tables; cell values keyed by row id then column id
+    extraColumns?: { id: string; title: string }[];
+    extraCellValues?: Record<string, Record<string, string>>;
   };
 }
 

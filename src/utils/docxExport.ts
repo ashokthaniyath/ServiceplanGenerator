@@ -22,6 +22,15 @@ import { resolveDocumentTokens } from './productTokens';
 import { getReturnRows } from './variants';
 import { colTitle, isColHidden } from './tableColumns';
 
+// User-added columns (shared model) appended after typed columns in DOCX tables.
+const extraDocxCols = (b: ServicePlanBlock) =>
+  (b.content.extraColumns || []).map(col => ({
+    key: `extra:${col.id}`,
+    title: col.title,
+    w: 18,
+    cell: (r: any) => createBodyCell((b.content.extraCellValues || {})[r.id]?.[col.id] || ' ', false, 18),
+  }));
+
 // Document body font — kept in sync with the on-screen preview (.pdf-document-root in index.css)
 const DOC_FONT = 'Open Sans';
 
@@ -458,6 +467,7 @@ export async function exportDocumentToDocx(rawDoc: ServicePlanDocument): Promise
       const defCols = [
         { key: 'term', title: colTitle(bDefinitions, 'term', 'Terms'), w: 35, cell: (d: any) => createBodyCell(d.term, true, 35) },
         { key: 'definition', title: colTitle(bDefinitions, 'definition', 'Definitions'), w: 65, cell: (d: any) => createBodyCell(d.definition, false, 65) },
+        ...extraDocxCols(bDefinitions),
       ].filter(c => !isColHidden(bDefinitions, c.key));
       const rows = [
         new TableRow({
@@ -510,25 +520,24 @@ export async function exportDocumentToDocx(rawDoc: ServicePlanDocument): Promise
     );
 
     if (bSpecs.content.specifications && bSpecs.content.specifications.length > 0) {
+      const specCols = [
+        { key: 'key', title: colTitle(bSpecs, 'key', 'Product Details'), w: 45, cell: (s: any) => createBodyCell(s.key, true, 45) },
+        { key: 'value', title: colTitle(bSpecs, 'value', 'Specification Values'), w: 55, cell: (s: any) => createBodyCell(s.value, false, 55) },
+        ...extraDocxCols(bSpecs),
+      ].filter(c => !isColHidden(bSpecs, c.key));
       const rows = [
         new TableRow({
           tableHeader: true,
-          children: [
-            createHeaderCell('Product Details', 45),
-            createHeaderCell('Specification Values', 55),
-          ],
+          children: specCols.map(c => createHeaderCell(c.title, c.w)),
         }),
         ...bSpecs.content.specifications.map(spec =>
           new TableRow({
-            children: [
-              createBodyCell(spec.key, true, 45),
-              createBodyCell(spec.value, false, 55),
-            ],
+            children: specCols.map(c => c.cell(spec)),
           })
         ),
       ];
 
-      docChildren.push(buildTable([45, 55], rows));
+      docChildren.push(buildTable(specCols.map(c => c.w), rows));
 
       if (bSpecs.customization.noteText && bSpecs.customization.noteText.trim().length > 0) {
         docChildren.push(
@@ -672,6 +681,7 @@ export async function exportDocumentToDocx(rawDoc: ServicePlanDocument): Promise
       const fnCols = [
         { key: 'functionName', title: colTitle(bFunctionalities, 'functionName', 'Function'), w: 35, cell: (fn: any) => createBodyCell(fn.functionName, true, 35) },
         { key: 'process', title: colTitle(bFunctionalities, 'process', 'Process'), w: 65, cell: (fn: any) => createBodyCell(fn.process, false, 65) },
+        ...extraDocxCols(bFunctionalities),
       ].filter(c => !isColHidden(bFunctionalities, c.key));
       const rows = [
         new TableRow({
@@ -722,6 +732,7 @@ export async function exportDocumentToDocx(rawDoc: ServicePlanDocument): Promise
         { key: 'case.scenario', title: colTitle(bLed, 'case.scenario', 'Case Remaining Battery'), w: 34, cell: (r: any) => createBodyCell(r.scenario, true, 34) },
         { key: 'case.chargingState', title: colTitle(bLed, 'case.chargingState', 'Charging State'), w: 33, cell: (r: any) => createBodyCell(r.chargingState || '-', false, 33) },
         { key: 'case.normalState', title: colTitle(bLed, 'case.normalState', 'Normal (Non-Charging) State'), w: 33, cell: (r: any) => createBodyCell(r.normalState || '-', false, 33) },
+        ...extraDocxCols(bLed),
       ].filter(c => !isColHidden(bLed, c.key));
       const rows = [
         new TableRow({
@@ -818,6 +829,7 @@ export async function exportDocumentToDocx(rawDoc: ServicePlanDocument): Promise
       const cgCols = [
         { key: 'statement', title: colTitle(bCharging, 'statement', 'Statement'), w: 35, cell: (g: any) => createBodyCell(g.statement, true, 35) },
         { key: 'information', title: colTitle(bCharging, 'information', 'Information'), w: 65, cell: (g: any) => createBodyCell(g.information, false, 65) },
+        ...extraDocxCols(bCharging),
       ].filter(c => !isColHidden(bCharging, c.key));
       const rows = [
         new TableRow({
@@ -1228,6 +1240,7 @@ export async function exportDocumentToDocx(rawDoc: ServicePlanDocument): Promise
       { key: 'rc.ean', title: colTitle(bCodes, 'rc.ean', 'EAN Number'), w: 24, cell: (rc: any) => createBodyCell(rc.ean || ' ', false, 24) },
       { key: 'rc.asin', title: colTitle(bCodes, 'rc.asin', 'ASIN'), w: 18, cell: (rc: any) => createBodyCell(rc.asin || ' ', false, 18) },
       { key: 'rc.fsn', title: colTitle(bCodes, 'rc.fsn', 'FSN'), w: 18, cell: (rc: any) => createBodyCell(rc.fsn || ' ', false, 18) },
+      ...extraDocxCols(bCodes),
     ].filter(c => !isColHidden(bCodes, c.key));
     const codeRows = [
       new TableRow({

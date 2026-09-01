@@ -170,6 +170,18 @@ export const DocumentPDFView: React.FC<DocumentPDFViewProps> = ({
     return document.themeColor || '#1e40af';
   };
 
+  // User-added table columns (shared model) rendered after the typed columns
+  const extraThs = (b: ServicePlanBlock) =>
+    (b.content.extraColumns || []).map(col => (
+      <th key={col.id} className="p-1.5 border-l border-black font-bold text-left">{col.title}</th>
+    ));
+  const extraTds = (b: ServicePlanBlock, rowId: string) =>
+    (b.content.extraColumns || []).map(col => (
+      <td key={col.id} className="p-1.5 border-l border-black text-slate-800">
+        {(b.content.extraCellValues || {})[rowId]?.[col.id] || ''}
+      </td>
+    ));
+
   // Helper to render custom content elements attached to any block
   const renderCustomContentElements = (block: ServicePlanBlock) => {
     const accent = getBlockAccent(block.id);
@@ -420,6 +432,7 @@ export const DocumentPDFView: React.FC<DocumentPDFViewProps> = ({
                     <tr className="border-b border-black font-bold bg-white">
                       {!isColHidden(bDefinitions, 'term') && <th className="p-1.5 border-r border-black font-bold text-left w-1/3 text-black">{colTitle(bDefinitions, 'term', 'Terms')}</th>}
                       {!isColHidden(bDefinitions, 'definition') && <th className="p-1.5 font-bold text-left text-black">{colTitle(bDefinitions, 'definition', 'Definitions')}</th>}
+                      {extraThs(bDefinitions)}
                     </tr>
                   </thead>
                   <tbody>
@@ -437,6 +450,7 @@ export const DocumentPDFView: React.FC<DocumentPDFViewProps> = ({
                         >
                           {def.definition}
                         </td>}
+                        {extraTds(bDefinitions, def.id)}
                       </tr>
                     ))}
                   </tbody>
@@ -460,25 +474,27 @@ export const DocumentPDFView: React.FC<DocumentPDFViewProps> = ({
                 <table className="w-full border border-black text-xs border-collapse">
                   <thead>
                     <tr className="border-b border-black font-bold bg-white">
-                      <th className="p-1.5 border-r border-black font-bold text-left w-1/2 text-black">Product Details</th>
-                      <th className="p-1.5 font-bold text-left text-black">Specification Values</th>
+                      {!isColHidden(bSpecs, 'key') && <th className="p-1.5 border-r border-black font-bold text-left w-1/2 text-black">{colTitle(bSpecs, 'key', 'Product Details')}</th>}
+                      {!isColHidden(bSpecs, 'value') && <th className="p-1.5 font-bold text-left text-black">{colTitle(bSpecs, 'value', 'Specification Values')}</th>}
+                      {extraThs(bSpecs)}
                     </tr>
                   </thead>
                   <tbody>
                     {(bSpecs.content.specifications || []).map(spec => (
                       <tr key={spec.id} className="border-b border-black last:border-b-0">
-                        <td 
+                        {!isColHidden(bSpecs, 'key') && <td 
                           onClick={(e) => handleElementClick(e, bSpecs.id, `spec-key-${spec.id}`, 'table-cell', `Spec: ${spec.key}`, spec.key, { isBold: true, itemId: spec.id, subKey: 'key' })}
                           className={`p-1.5 font-bold border-r border-black text-black ${getClickableClass(bSpecs.id, `spec-key-${spec.id}`)}`}
                         >
                           {spec.key}
-                        </td>
-                        <td 
+                        </td>}
+                        {!isColHidden(bSpecs, 'value') && <td 
                           onClick={(e) => handleElementClick(e, bSpecs.id, `spec-val-${spec.id}`, 'table-cell', `Value: ${spec.key}`, spec.value, { itemId: spec.id, subKey: 'value' })}
                           className={`p-1.5 text-black ${getClickableClass(bSpecs.id, `spec-val-${spec.id}`)}`}
                         >
                           {spec.value}
-                        </td>
+                        </td>}
+                        {extraTds(bSpecs, spec.id)}
                       </tr>
                     ))}
                   </tbody>
@@ -613,6 +629,7 @@ export const DocumentPDFView: React.FC<DocumentPDFViewProps> = ({
                   <tr className="border-b border-black">
                     {!isColHidden(bFunctionalities, 'functionName') && <th className="p-1.5 border-r border-black font-bold text-left w-1/4">{colTitle(bFunctionalities, 'functionName', 'Function')}</th>}
                     {!isColHidden(bFunctionalities, 'process') && <th className="p-1.5 font-bold text-left">{colTitle(bFunctionalities, 'process', 'Process')}</th>}
+                    {extraThs(bFunctionalities)}
                   </tr>
                 </thead>
                 <tbody>
@@ -630,6 +647,7 @@ export const DocumentPDFView: React.FC<DocumentPDFViewProps> = ({
                       >
                         {fn.process}
                       </td>}
+                      {extraTds(bFunctionalities, fn.id)}
                     </tr>
                   ))}
                 </tbody>
@@ -657,6 +675,7 @@ export const DocumentPDFView: React.FC<DocumentPDFViewProps> = ({
                       {!isColHidden(bLed, 'case.scenario') && <th className="p-1.5 border-r border-black font-bold text-left w-1/3">{colTitle(bLed, 'case.scenario', 'Case Remaining Battery')}</th>}
                       {!isColHidden(bLed, 'case.chargingState') && <th className="p-1.5 border-r border-black font-bold text-left w-1/3">{colTitle(bLed, 'case.chargingState', 'Charging State')}</th>}
                       {!isColHidden(bLed, 'case.normalState') && <th className="p-1.5 font-bold text-left w-1/3">{colTitle(bLed, 'case.normalState', 'Normal (Non-Charging) State')}</th>}
+                      {extraThs(bLed)}
                     </tr>
                   </thead>
                   <tbody>
@@ -680,6 +699,7 @@ export const DocumentPDFView: React.FC<DocumentPDFViewProps> = ({
                         >
                           {row.normalState}
                         </td>}
+                        {extraTds(bLed, row.id)}
                       </tr>
                     ))}
                   </tbody>
@@ -761,6 +781,7 @@ export const DocumentPDFView: React.FC<DocumentPDFViewProps> = ({
                     <tr className="border-b border-black">
                       {!isColHidden(bCharging, 'statement') && <th className="p-1.5 border-r border-black font-bold text-left w-1/4">{colTitle(bCharging, 'statement', 'Statement')}</th>}
                       {!isColHidden(bCharging, 'information') && <th className="p-1.5 font-bold text-left">{colTitle(bCharging, 'information', 'Information')}</th>}
+                      {extraThs(bCharging)}
                     </tr>
                   </thead>
                   <tbody>
@@ -778,6 +799,7 @@ export const DocumentPDFView: React.FC<DocumentPDFViewProps> = ({
                         >
                           {cg.information}
                         </td>}
+                        {extraTds(bCharging, cg.id)}
                       </tr>
                     ))}
                   </tbody>
@@ -1011,6 +1033,7 @@ export const DocumentPDFView: React.FC<DocumentPDFViewProps> = ({
                       {!isColHidden(bCodes, 'rc.ean') && <th className="p-1.5 border-r border-black font-bold text-left">{colTitle(bCodes, 'rc.ean', 'EAN Code')}</th>}
                       {!isColHidden(bCodes, 'rc.asin') && <th className="p-1.5 border-r border-black font-bold text-left">{colTitle(bCodes, 'rc.asin', 'ASIN')}</th>}
                       {!isColHidden(bCodes, 'rc.fsn') && <th className="p-1.5 font-bold text-left">{colTitle(bCodes, 'rc.fsn', 'FSN')}</th>}
+                      {extraThs(bCodes)}
                     </tr>
                   </thead>
                   <tbody>
@@ -1020,6 +1043,7 @@ export const DocumentPDFView: React.FC<DocumentPDFViewProps> = ({
                         {!isColHidden(bCodes, 'rc.ean') && <td className="p-1.5 border-r border-black font-mono">{code.ean}</td>}
                         {!isColHidden(bCodes, 'rc.asin') && <td className="p-1.5 border-r border-black font-mono">{code.asin}</td>}
                         {!isColHidden(bCodes, 'rc.fsn') && <td className="p-1.5 font-mono">{code.fsn}</td>}
+                        {extraTds(bCodes, code.id)}
                       </tr>
                     ))}
                   </tbody>

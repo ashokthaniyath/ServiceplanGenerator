@@ -1,8 +1,16 @@
 import { ServicePlanDocument } from '../types';
 
+// Blank means null/undefined/empty/whitespace-only — never overrides real values.
+const orDefault = (value: string | undefined | null): string =>
+  value && value.trim() ? value : 'default';
+
+const firstColourVariantName = (doc: ServicePlanDocument): string | undefined =>
+  doc.blocks.find(b => b.type === 'colour_variants')?.content.colourVariants?.[0]?.name;
+
 // Template tokens like <$productname$> resolved against the live document.
 const TOKEN_PATTERNS: [RegExp, (doc: ServicePlanDocument) => string][] = [
-  [/<\$\s*productname\s*\$>/gi, doc => doc.productName],
+  [/<\$\s*productname\s*\$>/gi, doc => orDefault(doc.productName)],
+  [/<\$\s*productcolor\s*\$>/gi, doc => orDefault(firstColourVariantName(doc))],
   [/<\$\s*modelcode\s*\$>/gi, doc => doc.modelCode],
   [/<\$\s*brand\s*\$>/gi, doc => doc.brand],
 ];
@@ -30,7 +38,7 @@ export function resolveTokens(text: string | undefined | null, doc: ServicePlanD
     out = out.replace(pattern, getValue(doc) || '');
   }
   // Rebind preset literals so a manually renamed product reflects everywhere.
-  if (doc.productName) {
+  if (doc.productName && doc.productName.trim()) {
     out = out.replace(LITERALS_PATTERN, doc.productName);
   }
   return out;

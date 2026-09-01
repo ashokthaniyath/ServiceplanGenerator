@@ -128,10 +128,52 @@ export const BlockEditors: React.FC<BlockEditorProps> = ({
   // preview and DOCX read the same structure.
   const colT = (key: string, fallback: string) => block.content.columnTitles?.[key] ?? fallback;
   const colHidden = (key: string) => (block.content.hiddenColumns || []).includes(key);
-  const renameCol = (key: string, title: string) =>
+  const renameCol = (key: string, title: string) => {
+    if (key.startsWith('extra:')) {
+      const id = key.slice(6);
+      updateContent({ extraColumns: (block.content.extraColumns || []).map(c => (c.id === id ? { ...c, title } : c)) });
+      return;
+    }
     updateContent({ columnTitles: { ...(block.content.columnTitles || {}), [key]: title } });
-  const hideCol = (key: string, wipe?: Partial<ServicePlanBlock['content']>) =>
+  };
+  const hideCol = (key: string, wipe?: Partial<ServicePlanBlock['content']>) => {
+    if (key.startsWith('extra:')) {
+      const id = key.slice(6);
+      const nextValues: Record<string, Record<string, string>> = {};
+      for (const [rowId, cells] of Object.entries(block.content.extraCellValues || {})) {
+        const { [id]: _removed, ...rest } = cells;
+        nextValues[rowId] = rest;
+      }
+      updateContent({ extraColumns: (block.content.extraColumns || []).filter(c => c.id !== id), extraCellValues: nextValues });
+      return;
+    }
     updateContent({ hiddenColumns: [...(block.content.hiddenColumns || []), key], ...(wipe || {}) });
+  };
+
+  // User-added columns — stored on block.content so every surface reads them.
+  const addExtraColumn = () => {
+    updateContent({ extraColumns: [...(block.content.extraColumns || []), { id: `xc-${Date.now()}`, title: 'New Column' }] });
+  };
+  const setExtraCell = (rowId: string, colId: string, value: string) => {
+    const all = block.content.extraCellValues || {};
+    updateContent({ extraCellValues: { ...all, [rowId]: { ...(all[rowId] || {}), [colId]: value } } });
+  };
+  const extraColumnDefs = (): any[] =>
+    (block.content.extraColumns || []).map(col => ({
+      key: `extra-${col.id}`,
+      colKey: `extra:${col.id}`,
+      header: col.title,
+      minWidth: '120px',
+      render: (item: { id?: string }) => (
+        <input
+          type="text"
+          value={(block.content.extraCellValues || {})[item.id || '']?.[col.id] || ''}
+          onChange={e => setExtraCell(item.id || '', col.id, e.target.value)}
+          placeholder="Value..."
+          className="w-full px-2.5 py-1.5 text-slate-700 text-xs rounded border border-slate-200 focus:outline-none bg-white"
+        />
+      ),
+    }));
 
   // Reusable array movement helper for dynamic tables
   const moveItem = <T,>(arr: T[], index: number, direction: 'up' | 'down'): T[] => {
@@ -735,6 +777,7 @@ export const BlockEditors: React.FC<BlockEditorProps> = ({
                 updateContent({ definitions: duplicateItem(defs, idx) });
               }}
               onRenameColumn={renameCol}
+              onAddColumn={addExtraColumn}
               onDeleteColumn={(k) => hideCol(k, k === 'term'
                 ? { definitions: defs.map(d => ({ ...d, term: '' })) }
                 : { definitions: defs.map(d => ({ ...d, definition: '' })) })}
@@ -778,7 +821,7 @@ export const BlockEditors: React.FC<BlockEditorProps> = ({
                     />
                   ),
                 },
-              ].filter(c => !c.colKey || !colHidden(c.colKey))}
+              , ...extraColumnDefs()].filter(c => !c.colKey || !colHidden(c.colKey))}
             />
           </div>
         );
@@ -812,6 +855,7 @@ export const BlockEditors: React.FC<BlockEditorProps> = ({
                 updateContent({ specifications: duplicateItem(specs, idx) });
               }}
               onRenameColumn={renameCol}
+              onAddColumn={addExtraColumn}
               onDeleteColumn={(k) => hideCol(k,
                 k === 'key' ? { specifications: specs.map(s => ({ ...s, key: '' })) }
                 : k === 'value' ? { specifications: specs.map(s => ({ ...s, value: '' })) }
@@ -878,7 +922,7 @@ export const BlockEditors: React.FC<BlockEditorProps> = ({
                     </div>
                   ),
                 },
-              ].filter(c => !c.colKey || !colHidden(c.colKey))}
+              , ...extraColumnDefs()].filter(c => !c.colKey || !colHidden(c.colKey))}
             />
 
             {/* Callout Note Box */}
@@ -1278,6 +1322,7 @@ export const BlockEditors: React.FC<BlockEditorProps> = ({
                 updateContent({ functionalities: duplicateItem(fns, idx) });
               }}
               onRenameColumn={renameCol}
+              onAddColumn={addExtraColumn}
               onDeleteColumn={(k) => hideCol(k, k === 'functionName'
                 ? { functionalities: fns.map(f => ({ ...f, functionName: '' })) }
                 : { functionalities: fns.map(f => ({ ...f, process: '' })) })}
@@ -1335,7 +1380,7 @@ export const BlockEditors: React.FC<BlockEditorProps> = ({
                     />
                   ),
                 },
-              ].filter(c => !('colKey' in c) || !c.colKey || !colHidden(c.colKey as string))}
+              , ...extraColumnDefs()].filter(c => !('colKey' in c) || !c.colKey || !colHidden(c.colKey as string))}
             />
           </div>
         );
@@ -1384,6 +1429,7 @@ export const BlockEditors: React.FC<BlockEditorProps> = ({
                 updateContent({ caseLedIndications: duplicateItem(caseLeds, idx) });
               }}
               onRenameColumn={renameCol}
+              onAddColumn={addExtraColumn}
               onDeleteColumn={(k) => hideCol(k,
                 k === 'case.scenario' ? { caseLedIndications: caseLeds.map(r => ({ ...r, scenario: '' })) }
                 : k === 'case.chargingState' ? { caseLedIndications: caseLeds.map(r => ({ ...r, chargingState: '' })) }
@@ -1447,7 +1493,7 @@ export const BlockEditors: React.FC<BlockEditorProps> = ({
                     />
                   ),
                 },
-              ].filter(c => !('colKey' in c) || !c.colKey || !colHidden(c.colKey as string))}
+              , ...extraColumnDefs()].filter(c => !('colKey' in c) || !c.colKey || !colHidden(c.colKey as string))}
             />
 
             {/* Earbuds LED Table */}
@@ -1482,6 +1528,7 @@ export const BlockEditors: React.FC<BlockEditorProps> = ({
                 updateContent({ earbudsLedIndications: duplicateItem(earbudLeds, idx) });
               }}
               onRenameColumn={renameCol}
+              onAddColumn={addExtraColumn}
               onDeleteColumn={(k) => hideCol(k, k === 'ear.scenario'
                 ? { earbudsLedIndications: earbudLeds.map(r => ({ ...r, scenario: '' })) }
                 : { earbudsLedIndications: earbudLeds.map(r => ({ ...r, chargingState: '' })) })}
@@ -1525,7 +1572,7 @@ export const BlockEditors: React.FC<BlockEditorProps> = ({
                     />
                   ),
                 },
-              ].filter(c => !('colKey' in c) || !c.colKey || !colHidden(c.colKey as string))}
+              , ...extraColumnDefs()].filter(c => !('colKey' in c) || !c.colKey || !colHidden(c.colKey as string))}
             />
           </div>
         );
@@ -1566,6 +1613,7 @@ export const BlockEditors: React.FC<BlockEditorProps> = ({
                 updateContent({ chargingGuidelines: duplicateItem(guidelines, idx) });
               }}
               onRenameColumn={renameCol}
+              onAddColumn={addExtraColumn}
               onDeleteColumn={(k) => hideCol(k, k === 'statement'
                 ? { chargingGuidelines: guidelines.map(g => ({ ...g, statement: '' })) }
                 : { chargingGuidelines: guidelines.map(g => ({ ...g, information: '' })) })}
@@ -1609,7 +1657,7 @@ export const BlockEditors: React.FC<BlockEditorProps> = ({
                     />
                   ),
                 },
-              ].filter(c => !('colKey' in c) || !c.colKey || !colHidden(c.colKey as string))}
+              , ...extraColumnDefs()].filter(c => !('colKey' in c) || !c.colKey || !colHidden(c.colKey as string))}
             />
 
             {/* Charging Notes */}
@@ -1939,6 +1987,7 @@ export const BlockEditors: React.FC<BlockEditorProps> = ({
                 updateContent({ hearablesGuideSteps: duplicateItem(guideSteps, idx) });
               }}
               onRenameColumn={renameCol}
+              onAddColumn={addExtraColumn}
               onDeleteColumn={(k) => hideCol(k, k === 'app.functionName'
                 ? { hearablesGuideSteps: guideSteps.map(s => ({ ...s, functionName: '' })) }
                 : { hearablesGuideSteps: guideSteps.map(s => ({ ...s, process: '' })) })}
@@ -1996,7 +2045,7 @@ export const BlockEditors: React.FC<BlockEditorProps> = ({
                     />
                   ),
                 },
-              ].filter(c => !('colKey' in c) || !c.colKey || !colHidden(c.colKey as string))}
+              , ...extraColumnDefs()].filter(c => !('colKey' in c) || !c.colKey || !colHidden(c.colKey as string))}
             />
           </div>
         );
@@ -2063,6 +2112,7 @@ export const BlockEditors: React.FC<BlockEditorProps> = ({
                 updateContent({ troubleshootingItems: duplicateItem(items, idx) });
               }}
               onRenameColumn={renameCol}
+              onAddColumn={addExtraColumn}
               onDeleteColumn={(k) => hideCol(k,
                 k === 'tb.category' ? { troubleshootingItems: items.map(i => ({ ...i, category: 'General' })) }
                 : k === 'tb.issue' ? { troubleshootingItems: items.map(i => ({ ...i, issue: '' })) }
@@ -2203,7 +2253,7 @@ export const BlockEditors: React.FC<BlockEditorProps> = ({
                     />
                   ),
                 },
-              ].filter(c => !('colKey' in c) || !c.colKey || !colHidden(c.colKey as string))}
+              , ...extraColumnDefs()].filter(c => !('colKey' in c) || !c.colKey || !colHidden(c.colKey as string))}
             />
           </div>
         );
@@ -2242,6 +2292,7 @@ export const BlockEditors: React.FC<BlockEditorProps> = ({
                   onUpdateVariants(updated);
                 }}
                 onRenameColumn={renameCol}
+              onAddColumn={addExtraColumn}
                 onDeleteColumn={(k) => {
                   if (k === 'rc.ean') onUpdateVariants(sharedVariants.map(v => ({ ...v, eanNumber: '' })));
                   else if (k === 'rc.asin') onUpdateVariants(sharedVariants.map(v => ({ ...v, asin: '' })));
@@ -2301,7 +2352,7 @@ export const BlockEditors: React.FC<BlockEditorProps> = ({
                       />
                     ),
                   },
-                ].filter(c => !('colKey' in c) || !c.colKey || !colHidden(c.colKey as string))}
+                , ...extraColumnDefs()].filter(c => !('colKey' in c) || !c.colKey || !colHidden(c.colKey as string))}
               />
             </div>
           );
@@ -2342,6 +2393,7 @@ export const BlockEditors: React.FC<BlockEditorProps> = ({
                 updateContent({ returnCodes: duplicateItem(codes, idx) });
               }}
               onRenameColumn={renameCol}
+              onAddColumn={addExtraColumn}
               onDeleteColumn={(k) => hideCol(k,
                 k === 'rc.productDesc' ? { returnCodes: codes.map(c => ({ ...c, productDesc: '' })) }
                 : k === 'rc.ean' ? { returnCodes: codes.map(c => ({ ...c, ean: '' })) }
@@ -2424,7 +2476,8 @@ export const BlockEditors: React.FC<BlockEditorProps> = ({
                     />
                   ),
                 },
-              ]}
+                ...extraColumnDefs(),
+              ].filter(c => !('colKey' in c) || !c.colKey || !colHidden(c.colKey as string))}
             />
           </div>
         );
@@ -2497,6 +2550,7 @@ export const BlockEditors: React.FC<BlockEditorProps> = ({
                 updateAnnexure(duplicateItem(items, idx));
               }}
               onRenameColumn={renameCol}
+              onAddColumn={addExtraColumn}
               onDeleteColumn={(k) => hideCol(k,
                 k === 'ann.category' ? { annexureItems: items.map(i => ({ ...i, category: '' })) }
                 : k === 'ann.protocols' ? { annexureItems: items.map(i => ({ ...i, protocols: '' })) }
@@ -2611,7 +2665,7 @@ export const BlockEditors: React.FC<BlockEditorProps> = ({
                     </div>
                   ),
                 },
-              ].filter(c => !('colKey' in c) || !c.colKey || !colHidden(c.colKey as string))}
+              , ...extraColumnDefs()].filter(c => !('colKey' in c) || !c.colKey || !colHidden(c.colKey as string))}
             />
           </div>
         );
