@@ -1,4 +1,4 @@
-import React, { useState, useMemo, useEffect } from 'react';
+import React, { useState, useMemo, useEffect, useRef } from 'react';
 import { DEFAULT_BOAT_AIRDOPES_800D } from './data/defaultPlans';
 import { ServicePlanDocument } from './types';
 import { Header } from './components/Header';
@@ -44,6 +44,38 @@ export default function App() {
   const handleDiscardChanges = () => {
     if (!window.confirm('Discard all unsaved changes and revert to the last applied state?')) return;
     setDocument(JSON.parse(JSON.stringify(savedDocument)));
+  };
+
+  // Master undo history — snapshots of the document before each change,
+  // coalesced so rapid typing produces a single undo step.
+  const historyRef = useRef<ServicePlanDocument[]>([]);
+  const lastPushRef = useRef<number>(0);
+  const [canUndo, setCanUndo] = useState(false);
+
+  const setDocumentTracked: React.Dispatch<React.SetStateAction<ServicePlanDocument>> = (action) => {
+    setDocument(prev => {
+      const next = typeof action === 'function'
+        ? (action as (p: ServicePlanDocument) => ServicePlanDocument)(prev)
+        : action;
+      if (next !== prev) {
+        const now = Date.now();
+        if (now - lastPushRef.current > 800) {
+          historyRef.current.push(prev);
+          if (historyRef.current.length > 50) historyRef.current.shift();
+          lastPushRef.current = now;
+          setCanUndo(true);
+        }
+      }
+      return next;
+    });
+  };
+
+  const handleUndo = () => {
+    const snapshot = historyRef.current.pop();
+    if (!snapshot) return;
+    lastPushRef.current = 0;
+    setDocument(snapshot);
+    setCanUndo(historyRef.current.length > 0);
   };
 
   // Warn before closing the tab with unsaved changes
@@ -92,13 +124,15 @@ export default function App() {
         isDirty={isDirty}
         onApplyChanges={handleApplyChanges}
         onDiscardChanges={handleDiscardChanges}
+        canUndo={canUndo}
+        onUndo={handleUndo}
       />
 
       {/* Screen 1 vs Screen 2 Layouts */}
       {currentScreen === 1 ? (
         <Screen1Setup
           document={document}
-          setDocument={setDocument}
+          setDocument={setDocumentTracked}
           onProceedToEditor={() => {
             setCurrentScreen(2);
             // set active block to first enabled block
@@ -109,7 +143,7 @@ export default function App() {
       ) : (
         <Screen2Editor
           document={document}
-          setDocument={setDocument}
+          setDocument={setDocumentTracked}
           viewMode={viewMode}
           setViewMode={setViewMode}
           activeBlockId={activeBlockId}
@@ -122,7 +156,7 @@ export default function App() {
         isOpen={isExportModalOpen}
         onClose={() => setIsExportModalOpen(false)}
         document={document}
-        setDocument={setDocument}
+        setDocument={setDocumentTracked}
       />
     </div>
   );

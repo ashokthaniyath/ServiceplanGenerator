@@ -5,7 +5,8 @@ import {
   Layers,
   Columns,
   Check,
-  Undo2
+  Undo2,
+  RotateCcw
 } from 'lucide-react';
 import { ServicePlanDocument } from '../types';
 
@@ -24,6 +25,8 @@ interface HeaderProps {
   isDirty?: boolean;
   onApplyChanges?: () => void;
   onDiscardChanges?: () => void;
+  canUndo?: boolean;
+  onUndo?: () => void;
 }
 
 export const Header: React.FC<HeaderProps> = ({
@@ -41,6 +44,8 @@ export const Header: React.FC<HeaderProps> = ({
   isDirty = false,
   onApplyChanges,
   onDiscardChanges,
+  canUndo = false,
+  onUndo,
 }) => {
   const isScreen1 = currentScreen === 1 || currentScreen === 'screen1';
   const isScreen2 = currentScreen === 2 || currentScreen === 'screen2';
@@ -116,6 +121,19 @@ export const Header: React.FC<HeaderProps> = ({
 
       {/* Right Actions */}
       <div className="flex items-center gap-2.5">
+        {onUndo && (
+          <button
+            type="button"
+            onClick={onUndo}
+            disabled={!canUndo}
+            className="flex items-center gap-1 px-2.5 py-1.5 bg-white hover:bg-gray-50 text-gray-700 border border-gray-300 text-[11px] font-bold rounded-md shadow-2xs transition-colors cursor-pointer disabled:opacity-40 disabled:cursor-not-allowed"
+            title="Undo the last change"
+          >
+            <RotateCcw className="w-3 h-3" />
+            <span>Undo</span>
+          </button>
+        )}
+
         {isDirty && (
           <div className="flex items-center gap-1.5 pr-1.5 border-r border-gray-200">
             <span className="flex items-center gap-1.5 text-[11px] font-semibold text-amber-700">
