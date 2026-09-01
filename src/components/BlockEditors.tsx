@@ -124,6 +124,15 @@ export const BlockEditors: React.FC<BlockEditorProps> = ({
     });
   };
 
+  // Column customization helpers — titles/visibility live on block.content so
+  // preview and DOCX read the same structure.
+  const colT = (key: string, fallback: string) => block.content.columnTitles?.[key] ?? fallback;
+  const colHidden = (key: string) => (block.content.hiddenColumns || []).includes(key);
+  const renameCol = (key: string, title: string) =>
+    updateContent({ columnTitles: { ...(block.content.columnTitles || {}), [key]: title } });
+  const hideCol = (key: string, wipe?: Partial<ServicePlanBlock['content']>) =>
+    updateContent({ hiddenColumns: [...(block.content.hiddenColumns || []), key], ...(wipe || {}) });
+
   // Reusable array movement helper for dynamic tables
   const moveItem = <T,>(arr: T[], index: number, direction: 'up' | 'down'): T[] => {
     const targetIndex = direction === 'up' ? index - 1 : index + 1;
@@ -725,10 +734,15 @@ export const BlockEditors: React.FC<BlockEditorProps> = ({
               onDuplicateRow={(idx) => {
                 updateContent({ definitions: duplicateItem(defs, idx) });
               }}
+              onRenameColumn={renameCol}
+              onDeleteColumn={(k) => hideCol(k, k === 'term'
+                ? { definitions: defs.map(d => ({ ...d, term: '' })) }
+                : { definitions: defs.map(d => ({ ...d, definition: '' })) })}
               columns={[
                 {
                   key: 'term',
-                  header: 'Terms / Abbreviations',
+                  colKey: 'term',
+                  header: colT('term', 'Terms / Abbreviations'),
                   width: 'w-1/3 min-w-[150px]',
                   render: (item, idx) => (
                     <input
@@ -747,7 +761,8 @@ export const BlockEditors: React.FC<BlockEditorProps> = ({
                 },
                 {
                   key: 'definition',
-                  header: 'Definitions',
+                  colKey: 'definition',
+                  header: colT('definition', 'Definitions'),
                   render: (item, idx) => (
                     <input
                       type="text"
@@ -763,7 +778,7 @@ export const BlockEditors: React.FC<BlockEditorProps> = ({
                     />
                   ),
                 },
-              ]}
+              ].filter(c => !c.colKey || !colHidden(c.colKey))}
             />
           </div>
         );
@@ -796,10 +811,16 @@ export const BlockEditors: React.FC<BlockEditorProps> = ({
               onDuplicateRow={(idx) => {
                 updateContent({ specifications: duplicateItem(specs, idx) });
               }}
+              onRenameColumn={renameCol}
+              onDeleteColumn={(k) => hideCol(k,
+                k === 'key' ? { specifications: specs.map(s => ({ ...s, key: '' })) }
+                : k === 'value' ? { specifications: specs.map(s => ({ ...s, value: '' })) }
+                : { specifications: specs.map(s => ({ ...s, highlight: false })) })}
               columns={[
                 {
                   key: 'key',
-                  header: 'Parameter Name',
+                  colKey: 'key',
+                  header: colT('key', 'Parameter Name'),
                   width: 'w-2/5 min-w-[160px]',
                   render: (item, idx) => (
                     <input
@@ -818,7 +839,8 @@ export const BlockEditors: React.FC<BlockEditorProps> = ({
                 },
                 {
                   key: 'value',
-                  header: 'Specification Value',
+                  colKey: 'value',
+                  header: colT('value', 'Specification Value'),
                   render: (item, idx) => (
                     <input
                       type="text"
@@ -836,9 +858,10 @@ export const BlockEditors: React.FC<BlockEditorProps> = ({
                 },
                 {
                   key: 'highlight',
-                  header: 'Highlight',
+                  colKey: 'highlight',
+                  header: colT('highlight', 'Highlight'),
                   width: 'w-20',
-                  align: 'center',
+                  align: 'center' as const,
                   render: (item, idx) => (
                     <div className="flex justify-center items-center py-1">
                       <input
@@ -855,7 +878,7 @@ export const BlockEditors: React.FC<BlockEditorProps> = ({
                     </div>
                   ),
                 },
-              ]}
+              ].filter(c => !c.colKey || !colHidden(c.colKey))}
             />
 
             {/* Callout Note Box */}
@@ -1254,12 +1277,16 @@ export const BlockEditors: React.FC<BlockEditorProps> = ({
               onDuplicateRow={(idx) => {
                 updateContent({ functionalities: duplicateItem(fns, idx) });
               }}
+              onRenameColumn={renameCol}
+              onDeleteColumn={(k) => hideCol(k, k === 'functionName'
+                ? { functionalities: fns.map(f => ({ ...f, functionName: '' })) }
+                : { functionalities: fns.map(f => ({ ...f, process: '' })) })}
               columns={[
                 {
                   key: 'index',
                   header: '#',
                   width: 'w-12',
-                  align: 'center',
+                  align: 'center' as const,
                   render: (_, idx) => (
                     <span className="inline-flex items-center justify-center w-6 h-6 rounded-full bg-blue-100 text-blue-800 text-xs font-bold font-mono">
                       {idx + 1}
@@ -1268,7 +1295,8 @@ export const BlockEditors: React.FC<BlockEditorProps> = ({
                 },
                 {
                   key: 'functionName',
-                  header: 'Function',
+                  colKey: 'functionName',
+                  header: colT('functionName', 'Function'),
                   width: 'w-1/4 min-w-[170px]',
                   render: (fn, idx) => (
                     <input
@@ -1288,7 +1316,8 @@ export const BlockEditors: React.FC<BlockEditorProps> = ({
                 },
                 {
                   key: 'process',
-                  header: 'Instructions',
+                  colKey: 'process',
+                  header: colT('process', 'Instructions'),
                   width: 'flex-1 min-w-[280px]',
                   render: (fn, idx) => (
                     <AutoResizeTextarea
@@ -1306,7 +1335,7 @@ export const BlockEditors: React.FC<BlockEditorProps> = ({
                     />
                   ),
                 },
-              ]}
+              ].filter(c => !('colKey' in c) || !c.colKey || !colHidden(c.colKey as string))}
             />
           </div>
         );
@@ -1354,10 +1383,16 @@ export const BlockEditors: React.FC<BlockEditorProps> = ({
               onDuplicateRow={(idx) => {
                 updateContent({ caseLedIndications: duplicateItem(caseLeds, idx) });
               }}
+              onRenameColumn={renameCol}
+              onDeleteColumn={(k) => hideCol(k,
+                k === 'case.scenario' ? { caseLedIndications: caseLeds.map(r => ({ ...r, scenario: '' })) }
+                : k === 'case.chargingState' ? { caseLedIndications: caseLeds.map(r => ({ ...r, chargingState: '' })) }
+                : { caseLedIndications: caseLeds.map(r => ({ ...r, normalState: '' })) })}
               columns={[
                 {
                   key: 'scenario',
-                  header: 'Case Remaining Battery',
+                  colKey: 'case.scenario',
+                  header: colT('case.scenario', 'Case Remaining Battery'),
                   width: 'w-1/3 min-w-[150px]',
                   render: (row, idx) => (
                     <input
@@ -1376,7 +1411,8 @@ export const BlockEditors: React.FC<BlockEditorProps> = ({
                 },
                 {
                   key: 'chargingState',
-                  header: 'Charging State',
+                  colKey: 'case.chargingState',
+                  header: colT('case.chargingState', 'Charging State'),
                   render: (row, idx) => (
                     <input
                       type="text"
@@ -1394,7 +1430,8 @@ export const BlockEditors: React.FC<BlockEditorProps> = ({
                 },
                 {
                   key: 'normalState',
-                  header: 'Normal (Non-Charging) State',
+                  colKey: 'case.normalState',
+                  header: colT('case.normalState', 'Normal (Non-Charging) State'),
                   render: (row, idx) => (
                     <input
                       type="text"
@@ -1410,7 +1447,7 @@ export const BlockEditors: React.FC<BlockEditorProps> = ({
                     />
                   ),
                 },
-              ]}
+              ].filter(c => !('colKey' in c) || !c.colKey || !colHidden(c.colKey as string))}
             />
 
             {/* Earbuds LED Table */}
@@ -1444,10 +1481,15 @@ export const BlockEditors: React.FC<BlockEditorProps> = ({
               onDuplicateRow={(idx) => {
                 updateContent({ earbudsLedIndications: duplicateItem(earbudLeds, idx) });
               }}
+              onRenameColumn={renameCol}
+              onDeleteColumn={(k) => hideCol(k, k === 'ear.scenario'
+                ? { earbudsLedIndications: earbudLeds.map(r => ({ ...r, scenario: '' })) }
+                : { earbudsLedIndications: earbudLeds.map(r => ({ ...r, chargingState: '' })) })}
               columns={[
                 {
                   key: 'scenario',
-                  header: 'Scenario',
+                  colKey: 'ear.scenario',
+                  header: colT('ear.scenario', 'Scenario'),
                   width: 'w-1/3 min-w-[150px]',
                   render: (row, idx) => (
                     <input
@@ -1466,7 +1508,8 @@ export const BlockEditors: React.FC<BlockEditorProps> = ({
                 },
                 {
                   key: 'chargingState',
-                  header: 'Indication & Flash Pattern',
+                  colKey: 'ear.chargingState',
+                  header: colT('ear.chargingState', 'Indication & Flash Pattern'),
                   render: (row, idx) => (
                     <input
                       type="text"
@@ -1482,7 +1525,7 @@ export const BlockEditors: React.FC<BlockEditorProps> = ({
                     />
                   ),
                 },
-              ]}
+              ].filter(c => !('colKey' in c) || !c.colKey || !colHidden(c.colKey as string))}
             />
           </div>
         );
@@ -1522,10 +1565,15 @@ export const BlockEditors: React.FC<BlockEditorProps> = ({
               onDuplicateRow={(idx) => {
                 updateContent({ chargingGuidelines: duplicateItem(guidelines, idx) });
               }}
+              onRenameColumn={renameCol}
+              onDeleteColumn={(k) => hideCol(k, k === 'statement'
+                ? { chargingGuidelines: guidelines.map(g => ({ ...g, statement: '' })) }
+                : { chargingGuidelines: guidelines.map(g => ({ ...g, information: '' })) })}
               columns={[
                 {
                   key: 'statement',
-                  header: 'Statement / Parameter',
+                  colKey: 'statement',
+                  header: colT('statement', 'Statement / Parameter'),
                   width: 'w-1/3 min-w-[160px]',
                   render: (cg, idx) => (
                     <input
@@ -1544,7 +1592,8 @@ export const BlockEditors: React.FC<BlockEditorProps> = ({
                 },
                 {
                   key: 'information',
-                  header: 'Specification / Condition',
+                  colKey: 'information',
+                  header: colT('information', 'Specification / Condition'),
                   render: (cg, idx) => (
                     <AutoResizeTextarea
                       minRows={2}
@@ -1560,7 +1609,7 @@ export const BlockEditors: React.FC<BlockEditorProps> = ({
                     />
                   ),
                 },
-              ]}
+              ].filter(c => !('colKey' in c) || !c.colKey || !colHidden(c.colKey as string))}
             />
 
             {/* Charging Notes */}
@@ -1889,12 +1938,16 @@ export const BlockEditors: React.FC<BlockEditorProps> = ({
               onDuplicateRow={(idx) => {
                 updateContent({ hearablesGuideSteps: duplicateItem(guideSteps, idx) });
               }}
+              onRenameColumn={renameCol}
+              onDeleteColumn={(k) => hideCol(k, k === 'app.functionName'
+                ? { hearablesGuideSteps: guideSteps.map(s => ({ ...s, functionName: '' })) }
+                : { hearablesGuideSteps: guideSteps.map(s => ({ ...s, process: '' })) })}
               columns={[
                 {
                   key: 'index',
                   header: '#',
                   width: 'w-12',
-                  align: 'center',
+                  align: 'center' as const,
                   render: (_, idx) => (
                     <span className="inline-flex items-center justify-center w-6 h-6 rounded-full bg-blue-100 text-blue-800 text-xs font-bold font-mono">
                       {idx + 1}
@@ -1903,7 +1956,8 @@ export const BlockEditors: React.FC<BlockEditorProps> = ({
                 },
                 {
                   key: 'functionName',
-                  header: 'Function / Screen',
+                  colKey: 'app.functionName',
+                  header: colT('app.functionName', 'Function / Screen'),
                   width: 'w-1/4 min-w-[170px]',
                   render: (step, idx) => (
                     <input
@@ -1923,7 +1977,8 @@ export const BlockEditors: React.FC<BlockEditorProps> = ({
                 },
                 {
                   key: 'process',
-                  header: 'Companion App SOP Instructions',
+                  colKey: 'app.process',
+                  header: colT('app.process', 'Companion App SOP Instructions'),
                   width: 'flex-1 min-w-[280px]',
                   render: (step, idx) => (
                     <AutoResizeTextarea
@@ -1941,7 +1996,7 @@ export const BlockEditors: React.FC<BlockEditorProps> = ({
                     />
                   ),
                 },
-              ]}
+              ].filter(c => !('colKey' in c) || !c.colKey || !colHidden(c.colKey as string))}
             />
           </div>
         );
@@ -2007,10 +2062,18 @@ export const BlockEditors: React.FC<BlockEditorProps> = ({
               onDuplicateRow={(idx) => {
                 updateContent({ troubleshootingItems: duplicateItem(items, idx) });
               }}
+              onRenameColumn={renameCol}
+              onDeleteColumn={(k) => hideCol(k,
+                k === 'tb.category' ? { troubleshootingItems: items.map(i => ({ ...i, category: 'General' })) }
+                : k === 'tb.issue' ? { troubleshootingItems: items.map(i => ({ ...i, issue: '' })) }
+                : k === 'tb.instructions' ? { troubleshootingItems: items.map(i => ({ ...i, instructions: [] })) }
+                : k === 'tb.finalResolution' ? { troubleshootingItems: items.map(i => ({ ...i, finalResolution: '' })) }
+                : { troubleshootingItems: items.map(i => ({ ...i, appDiagnosticsNote: '' })) })}
               columns={[
                 {
                   key: 'category',
-                  header: 'Category',
+                  colKey: 'tb.category',
+                  header: colT('tb.category', 'Category'),
                   width: 'w-32 min-w-[120px]',
                   render: (item, idx) => {
                     const catStyle = categoryBadgeColors[item.category || 'General'] || categoryBadgeColors.General;
@@ -2035,7 +2098,8 @@ export const BlockEditors: React.FC<BlockEditorProps> = ({
                 },
                 {
                   key: 'issue',
-                  header: 'Issue',
+                  colKey: 'tb.issue',
+                  header: colT('tb.issue', 'Issue'),
                   width: 'w-1/5 min-w-[160px]',
                   render: (item, idx) => (
                     <AutoResizeTextarea
@@ -2055,7 +2119,8 @@ export const BlockEditors: React.FC<BlockEditorProps> = ({
                 },
                 {
                   key: 'instructions',
-                  header: 'Actionable SOP Instructions',
+                  colKey: 'tb.instructions',
+                  header: colT('tb.instructions', 'Actionable SOP Instructions'),
                   width: 'flex-1 min-w-[260px]',
                   render: (item, idx) => (
                     <div className="space-y-1">
@@ -2098,7 +2163,8 @@ export const BlockEditors: React.FC<BlockEditorProps> = ({
                 },
                 {
                   key: 'finalResolution',
-                  header: 'Final Resolution Protocol',
+                  colKey: 'tb.finalResolution',
+                  header: colT('tb.finalResolution', 'Final Resolution Protocol'),
                   width: 'w-1/5 min-w-[150px]',
                   render: (item, idx) => (
                     <AutoResizeTextarea
@@ -2118,7 +2184,8 @@ export const BlockEditors: React.FC<BlockEditorProps> = ({
                 },
                 {
                   key: 'appDiagnosticsNote',
-                  header: 'Hearables App Diagnostic Note',
+                  colKey: 'tb.appDiagnosticsNote',
+                  header: colT('tb.appDiagnosticsNote', 'Hearables App Diagnostic Note'),
                   width: 'w-1/5 min-w-[150px]',
                   render: (item, idx) => (
                     <AutoResizeTextarea
@@ -2136,7 +2203,7 @@ export const BlockEditors: React.FC<BlockEditorProps> = ({
                     />
                   ),
                 },
-              ]}
+              ].filter(c => !('colKey' in c) || !c.colKey || !colHidden(c.colKey as string))}
             />
           </div>
         );
@@ -2174,10 +2241,18 @@ export const BlockEditors: React.FC<BlockEditorProps> = ({
                   updated.splice(to, 0, removed);
                   onUpdateVariants(updated);
                 }}
+                onRenameColumn={renameCol}
+                onDeleteColumn={(k) => {
+                  if (k === 'rc.ean') onUpdateVariants(sharedVariants.map(v => ({ ...v, eanNumber: '' })));
+                  else if (k === 'rc.asin') onUpdateVariants(sharedVariants.map(v => ({ ...v, asin: '' })));
+                  else if (k === 'rc.fsn') onUpdateVariants(sharedVariants.map(v => ({ ...v, fsn: '' })));
+                  hideCol(k);
+                }}
                 columns={[
                   {
                     key: 'productDesc',
-                    header: 'Product Description',
+                    colKey: 'rc.productDesc',
+                    header: colT('rc.productDesc', 'Product Description'),
                     render: (v) => (
                       <div className="flex items-center gap-2 px-2.5 py-1.5">
                         <span className="font-semibold text-slate-800 text-xs">{productName ? `${productName} – ${v.name}` : v.name}</span>
@@ -2186,7 +2261,8 @@ export const BlockEditors: React.FC<BlockEditorProps> = ({
                   },
                   {
                     key: 'ean',
-                    header: 'EAN Number',
+                    colKey: 'rc.ean',
+                    header: colT('rc.ean', 'EAN Number'),
                     render: (v, idx) => (
                       <input
                         type="text"
@@ -2199,7 +2275,8 @@ export const BlockEditors: React.FC<BlockEditorProps> = ({
                   },
                   {
                     key: 'asin',
-                    header: 'ASIN (Amazon)',
+                    colKey: 'rc.asin',
+                    header: colT('rc.asin', 'ASIN (Amazon)'),
                     render: (v, idx) => (
                       <input
                         type="text"
@@ -2212,7 +2289,8 @@ export const BlockEditors: React.FC<BlockEditorProps> = ({
                   },
                   {
                     key: 'fsn',
-                    header: 'FSN (Flipkart)',
+                    colKey: 'rc.fsn',
+                    header: colT('rc.fsn', 'FSN (Flipkart)'),
                     render: (v, idx) => (
                       <input
                         type="text"
@@ -2223,7 +2301,7 @@ export const BlockEditors: React.FC<BlockEditorProps> = ({
                       />
                     ),
                   },
-                ]}
+                ].filter(c => !('colKey' in c) || !c.colKey || !colHidden(c.colKey as string))}
               />
             </div>
           );
@@ -2263,10 +2341,17 @@ export const BlockEditors: React.FC<BlockEditorProps> = ({
               onDuplicateRow={(idx) => {
                 updateContent({ returnCodes: duplicateItem(codes, idx) });
               }}
+              onRenameColumn={renameCol}
+              onDeleteColumn={(k) => hideCol(k,
+                k === 'rc.productDesc' ? { returnCodes: codes.map(c => ({ ...c, productDesc: '' })) }
+                : k === 'rc.ean' ? { returnCodes: codes.map(c => ({ ...c, ean: '' })) }
+                : k === 'rc.asin' ? { returnCodes: codes.map(c => ({ ...c, asin: '' })) }
+                : { returnCodes: codes.map(c => ({ ...c, fsn: '' })) })}
               columns={[
                 {
                   key: 'productDesc',
-                  header: 'Product Description',
+                  colKey: 'rc.productDesc',
+                  header: colT('rc.productDesc', 'Product Description'),
                   render: (code, idx) => (
                     <input
                       type="text"
@@ -2284,7 +2369,8 @@ export const BlockEditors: React.FC<BlockEditorProps> = ({
                 },
                 {
                   key: 'ean',
-                  header: 'EAN Number',
+                  colKey: 'rc.ean',
+                  header: colT('rc.ean', 'EAN Number'),
                   render: (code, idx) => (
                     <input
                       type="text"
@@ -2302,7 +2388,8 @@ export const BlockEditors: React.FC<BlockEditorProps> = ({
                 },
                 {
                   key: 'asin',
-                  header: 'ASIN (Amazon)',
+                  colKey: 'rc.asin',
+                  header: colT('rc.asin', 'ASIN (Amazon)'),
                   render: (code, idx) => (
                     <input
                       type="text"
@@ -2320,7 +2407,8 @@ export const BlockEditors: React.FC<BlockEditorProps> = ({
                 },
                 {
                   key: 'fsn',
-                  header: 'FSN (Flipkart)',
+                  colKey: 'rc.fsn',
+                  header: colT('rc.fsn', 'FSN (Flipkart)'),
                   render: (code, idx) => (
                     <input
                       type="text"
@@ -2408,12 +2496,17 @@ export const BlockEditors: React.FC<BlockEditorProps> = ({
               onDuplicateRow={(idx) => {
                 updateAnnexure(duplicateItem(items, idx));
               }}
+              onRenameColumn={renameCol}
+              onDeleteColumn={(k) => hideCol(k,
+                k === 'ann.category' ? { annexureItems: items.map(i => ({ ...i, category: '' })) }
+                : k === 'ann.protocols' ? { annexureItems: items.map(i => ({ ...i, protocols: '' })) }
+                : { annexureItems: items.map(i => ({ ...i, resourceLink: '' })) })}
               columns={[
                 {
                   key: 'index',
                   header: '#',
                   width: 'w-12',
-                  align: 'center',
+                  align: 'center' as const,
                   render: (_, idx) => (
                     <span className="inline-flex items-center justify-center w-6 h-6 rounded-full bg-blue-100 text-blue-800 text-xs font-bold font-mono">
                       {idx + 1}
@@ -2422,7 +2515,8 @@ export const BlockEditors: React.FC<BlockEditorProps> = ({
                 },
                 {
                   key: 'category',
-                  header: 'Category',
+                  colKey: 'ann.category',
+                  header: colT('ann.category', 'Category'),
                   width: 'w-32 min-w-[130px]',
                   render: (item, idx) => (
                     <input
@@ -2440,7 +2534,8 @@ export const BlockEditors: React.FC<BlockEditorProps> = ({
                 },
                 {
                   key: 'protocols',
-                  header: 'Testing SOP Protocols & Flowcharts',
+                  colKey: 'ann.protocols',
+                  header: colT('ann.protocols', 'Testing SOP Protocols & Flowcharts'),
                   width: 'flex-1 min-w-[280px]',
                   render: (item, idx) => (
                     <div className="space-y-1.5">
@@ -2480,7 +2575,8 @@ export const BlockEditors: React.FC<BlockEditorProps> = ({
                 },
                 {
                   key: 'resourceLink',
-                  header: 'Service & Tutorial Video Links / Portal URL',
+                  colKey: 'ann.resourceLink',
+                  header: colT('ann.resourceLink', 'Service & Tutorial Video Links / Portal URL'),
                   width: 'w-1/4 min-w-[200px]',
                   render: (item, idx) => (
                     <div className="space-y-1.5">
@@ -2515,7 +2611,7 @@ export const BlockEditors: React.FC<BlockEditorProps> = ({
                     </div>
                   ),
                 },
-              ]}
+              ].filter(c => !('colKey' in c) || !c.colKey || !colHidden(c.colKey as string))}
             />
           </div>
         );

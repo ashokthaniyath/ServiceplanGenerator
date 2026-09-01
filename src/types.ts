@@ -195,6 +195,9 @@ export interface ServicePlanBlock {
     customHtml?: string;
     customTableColumns?: string[];
     customTableRows?: TableRowItem[];
+    // Column customization for typed tables — keyed by semantic column key
+    columnTitles?: Record<string, string>;
+    hiddenColumns?: string[];
   };
 }
 

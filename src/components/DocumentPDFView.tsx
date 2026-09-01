@@ -7,6 +7,7 @@ import {
 } from '../types';
 import { resolveDocumentTokens } from '../utils/productTokens';
 import { getReturnRows } from '../utils/variants';
+import { colTitle, isColHidden } from '../utils/tableColumns';
 import { EarbudsCaseMockup, HearablesAppScreenMockup } from './VisualMockups';
 import { 
   FileText, 
@@ -417,25 +418,25 @@ export const DocumentPDFView: React.FC<DocumentPDFViewProps> = ({
                 <table className="w-full border border-black text-xs border-collapse">
                   <thead>
                     <tr className="border-b border-black font-bold bg-white">
-                      <th className="p-1.5 border-r border-black font-bold text-left w-1/3 text-black">Terms</th>
-                      <th className="p-1.5 font-bold text-left text-black">Definitions</th>
+                      {!isColHidden(bDefinitions, 'term') && <th className="p-1.5 border-r border-black font-bold text-left w-1/3 text-black">{colTitle(bDefinitions, 'term', 'Terms')}</th>}
+                      {!isColHidden(bDefinitions, 'definition') && <th className="p-1.5 font-bold text-left text-black">{colTitle(bDefinitions, 'definition', 'Definitions')}</th>}
                     </tr>
                   </thead>
                   <tbody>
                     {(bDefinitions.content.definitions || []).map(def => (
                       <tr key={def.id} className="border-b border-black last:border-b-0">
-                        <td 
+                        {!isColHidden(bDefinitions, 'term') && <td 
                           onClick={(e) => handleElementClick(e, bDefinitions.id, `def-term-${def.id}`, 'definition', `Term: ${def.term}`, def.term, { isBold: true, itemId: def.id, subKey: 'term' })}
                           className={`p-1.5 font-bold border-r border-black align-top text-black ${getClickableClass(bDefinitions.id, `def-term-${def.id}`)}`}
                         >
                           {def.term}
-                        </td>
-                        <td 
+                        </td>}
+                        {!isColHidden(bDefinitions, 'definition') && <td 
                           onClick={(e) => handleElementClick(e, bDefinitions.id, `def-desc-${def.id}`, 'paragraph', `Def: ${def.term}`, def.definition, { itemId: def.id, subKey: 'definition' })}
                           className={`p-1.5 text-black ${getClickableClass(bDefinitions.id, `def-desc-${def.id}`)}`}
                         >
                           {def.definition}
-                        </td>
+                        </td>}
                       </tr>
                     ))}
                   </tbody>
@@ -610,25 +611,25 @@ export const DocumentPDFView: React.FC<DocumentPDFViewProps> = ({
               <table className="w-full border border-black text-xs border-collapse">
                 <thead>
                   <tr className="border-b border-black">
-                    <th className="p-1.5 border-r border-black font-bold text-left w-1/4">Function</th>
-                    <th className="p-1.5 font-bold text-left">Process</th>
+                    {!isColHidden(bFunctionalities, 'functionName') && <th className="p-1.5 border-r border-black font-bold text-left w-1/4">{colTitle(bFunctionalities, 'functionName', 'Function')}</th>}
+                    {!isColHidden(bFunctionalities, 'process') && <th className="p-1.5 font-bold text-left">{colTitle(bFunctionalities, 'process', 'Process')}</th>}
                   </tr>
                 </thead>
                 <tbody>
                   {(bFunctionalities.content.functionalities || []).map(fn => (
                     <tr key={fn.id} className="border-b border-black last:border-b-0">
-                      <td 
+                      {!isColHidden(bFunctionalities, 'functionName') && <td 
                         onClick={(e) => handleElementClick(e, bFunctionalities.id, `fn-name-${fn.id}`, 'heading', `Function: ${fn.functionName}`, fn.functionName, { isBold: true, itemId: fn.id, subKey: 'functionName' })}
                         className={`p-1.5 font-bold border-r border-black align-top ${getClickableClass(bFunctionalities.id, `fn-name-${fn.id}`)}`}
                       >
                         {fn.functionName}
-                      </td>
-                      <td 
+                      </td>}
+                      {!isColHidden(bFunctionalities, 'process') && <td 
                         onClick={(e) => handleElementClick(e, bFunctionalities.id, `fn-proc-${fn.id}`, 'paragraph', `Process for ${fn.functionName}`, fn.process, { itemId: fn.id, subKey: 'process' })}
                         className={`p-1.5 text-slate-800 whitespace-pre-line leading-relaxed ${getClickableClass(bFunctionalities.id, `fn-proc-${fn.id}`)}`}
                       >
                         {fn.process}
-                      </td>
+                      </td>}
                     </tr>
                   ))}
                 </tbody>
@@ -653,32 +654,32 @@ export const DocumentPDFView: React.FC<DocumentPDFViewProps> = ({
                 <table className="w-full border border-black text-xs border-collapse">
                   <thead>
                     <tr className="border-b border-black">
-                      <th className="p-1.5 border-r border-black font-bold text-left w-1/3">Case Remaining Battery</th>
-                      <th className="p-1.5 border-r border-black font-bold text-left w-1/3">Charging State</th>
-                      <th className="p-1.5 font-bold text-left w-1/3">Normal (Non-Charging) State</th>
+                      {!isColHidden(bLed, 'case.scenario') && <th className="p-1.5 border-r border-black font-bold text-left w-1/3">{colTitle(bLed, 'case.scenario', 'Case Remaining Battery')}</th>}
+                      {!isColHidden(bLed, 'case.chargingState') && <th className="p-1.5 border-r border-black font-bold text-left w-1/3">{colTitle(bLed, 'case.chargingState', 'Charging State')}</th>}
+                      {!isColHidden(bLed, 'case.normalState') && <th className="p-1.5 font-bold text-left w-1/3">{colTitle(bLed, 'case.normalState', 'Normal (Non-Charging) State')}</th>}
                     </tr>
                   </thead>
                   <tbody>
                     {(bLed.content.caseLedIndications || []).map(row => (
                       <tr key={row.id} className="border-b border-black last:border-b-0">
-                        <td 
+                        {!isColHidden(bLed, 'case.scenario') && <td 
                           onClick={(e) => handleElementClick(e, bLed.id, `case-led-scen-${row.id}`, 'table-cell', `LED Range: ${row.scenario}`, row.scenario, { isBold: true, itemId: row.id, subKey: 'scenario' })}
                           className={`p-1.5 font-bold border-r border-black ${getClickableClass(bLed.id, `case-led-scen-${row.id}`)}`}
                         >
                           {row.scenario}
-                        </td>
-                        <td 
+                        </td>}
+                        {!isColHidden(bLed, 'case.chargingState') && <td 
                           onClick={(e) => handleElementClick(e, bLed.id, `case-led-chg-${row.id}`, 'table-cell', `Charging State: ${row.scenario}`, row.chargingState || '', { itemId: row.id, subKey: 'chargingState' })}
                           className={`p-1.5 border-r border-black text-slate-800 ${getClickableClass(bLed.id, `case-led-chg-${row.id}`)}`}
                         >
                           {row.chargingState}
-                        </td>
-                        <td 
+                        </td>}
+                        {!isColHidden(bLed, 'case.normalState') && <td 
                           onClick={(e) => handleElementClick(e, bLed.id, `case-led-norm-${row.id}`, 'table-cell', `Normal State: ${row.scenario}`, row.normalState || '', { itemId: row.id, subKey: 'normalState' })}
                           className={`p-1.5 text-slate-800 ${getClickableClass(bLed.id, `case-led-norm-${row.id}`)}`}
                         >
                           {row.normalState}
-                        </td>
+                        </td>}
                       </tr>
                     ))}
                   </tbody>
@@ -691,25 +692,25 @@ export const DocumentPDFView: React.FC<DocumentPDFViewProps> = ({
                 <table className="w-full border border-black text-xs border-collapse">
                   <thead>
                     <tr className="border-b border-black">
-                      <th className="p-1.5 border-r border-black font-bold text-left w-1/3">Scenario</th>
-                      <th className="p-1.5 font-bold text-left">Charging / Operating State</th>
+                      {!isColHidden(bLed, 'ear.scenario') && <th className="p-1.5 border-r border-black font-bold text-left w-1/3">{colTitle(bLed, 'ear.scenario', 'Scenario')}</th>}
+                      {!isColHidden(bLed, 'ear.chargingState') && <th className="p-1.5 font-bold text-left">{colTitle(bLed, 'ear.chargingState', 'Charging / Operating State')}</th>}
                     </tr>
                   </thead>
                   <tbody>
                     {(bLed.content.earbudsLedIndications || []).map(row => (
                       <tr key={row.id} className="border-b border-black last:border-b-0">
-                        <td 
+                        {!isColHidden(bLed, 'ear.scenario') && <td 
                           onClick={(e) => handleElementClick(e, bLed.id, `ear-led-scen-${row.id}`, 'table-cell', `Earbud Scenario: ${row.scenario}`, row.scenario, { isBold: true, itemId: row.id, subKey: 'scenario' })}
                           className={`p-1.5 font-bold border-r border-black ${getClickableClass(bLed.id, `ear-led-scen-${row.id}`)}`}
                         >
                           {row.scenario}
-                        </td>
-                        <td 
+                        </td>}
+                        {!isColHidden(bLed, 'ear.chargingState') && <td 
                           onClick={(e) => handleElementClick(e, bLed.id, `ear-led-chg-${row.id}`, 'table-cell', `Earbud State: ${row.scenario}`, row.chargingState || '', { itemId: row.id, subKey: 'chargingState' })}
                           className={`p-1.5 text-slate-800 whitespace-pre-line ${getClickableClass(bLed.id, `ear-led-chg-${row.id}`)}`}
                         >
                           {row.chargingState}
-                        </td>
+                        </td>}
                       </tr>
                     ))}
                   </tbody>
@@ -758,25 +759,25 @@ export const DocumentPDFView: React.FC<DocumentPDFViewProps> = ({
                 <table className="w-full border border-black text-xs border-collapse">
                   <thead>
                     <tr className="border-b border-black">
-                      <th className="p-1.5 border-r border-black font-bold text-left w-1/4">Statement</th>
-                      <th className="p-1.5 font-bold text-left">Information</th>
+                      {!isColHidden(bCharging, 'statement') && <th className="p-1.5 border-r border-black font-bold text-left w-1/4">{colTitle(bCharging, 'statement', 'Statement')}</th>}
+                      {!isColHidden(bCharging, 'information') && <th className="p-1.5 font-bold text-left">{colTitle(bCharging, 'information', 'Information')}</th>}
                     </tr>
                   </thead>
                   <tbody>
                     {(bCharging.content.chargingGuidelines || []).map(cg => (
                       <tr key={cg.id} className="border-b border-black last:border-b-0">
-                        <td 
+                        {!isColHidden(bCharging, 'statement') && <td 
                           onClick={(e) => handleElementClick(e, bCharging.id, `cg-stat-${cg.id}`, 'table-cell', `Statement: ${cg.statement}`, cg.statement, { isBold: true, itemId: cg.id, subKey: 'statement' })}
                           className={`p-1.5 font-bold border-r border-black align-top ${getClickableClass(bCharging.id, `cg-stat-${cg.id}`)}`}
                         >
                           {cg.statement}
-                        </td>
-                        <td 
+                        </td>}
+                        {!isColHidden(bCharging, 'information') && <td 
                           onClick={(e) => handleElementClick(e, bCharging.id, `cg-info-${cg.id}`, 'paragraph', `Info: ${cg.statement}`, cg.information, { itemId: cg.id, subKey: 'information' })}
                           className={`p-1.5 text-slate-800 whitespace-pre-line leading-relaxed ${getClickableClass(bCharging.id, `cg-info-${cg.id}`)}`}
                         >
                           {cg.information}
-                        </td>
+                        </td>}
                       </tr>
                     ))}
                   </tbody>
@@ -1006,19 +1007,19 @@ export const DocumentPDFView: React.FC<DocumentPDFViewProps> = ({
                 <table className="w-full border border-black text-xs border-collapse">
                   <thead style={{ backgroundColor: `${getBlockAccent(bCodes.id)}15` }}>
                     <tr className="border-b border-black">
-                      <th className="p-1.5 border-r border-black font-bold text-left">Product Description</th>
-                      <th className="p-1.5 border-r border-black font-bold text-left">EAN Code</th>
-                      <th className="p-1.5 border-r border-black font-bold text-left">ASIN</th>
-                      <th className="p-1.5 font-bold text-left">FSN</th>
+                      {!isColHidden(bCodes, 'rc.productDesc') && <th className="p-1.5 border-r border-black font-bold text-left">{colTitle(bCodes, 'rc.productDesc', 'Product Description')}</th>}
+                      {!isColHidden(bCodes, 'rc.ean') && <th className="p-1.5 border-r border-black font-bold text-left">{colTitle(bCodes, 'rc.ean', 'EAN Code')}</th>}
+                      {!isColHidden(bCodes, 'rc.asin') && <th className="p-1.5 border-r border-black font-bold text-left">{colTitle(bCodes, 'rc.asin', 'ASIN')}</th>}
+                      {!isColHidden(bCodes, 'rc.fsn') && <th className="p-1.5 font-bold text-left">{colTitle(bCodes, 'rc.fsn', 'FSN')}</th>}
                     </tr>
                   </thead>
                   <tbody>
                     {getReturnRows(document).map(code => (
                       <tr key={code.id} className="border-b border-black last:border-b-0">
-                        <td className="p-1.5 font-bold border-r border-black">{code.productDesc}</td>
-                        <td className="p-1.5 border-r border-black font-mono">{code.ean}</td>
-                        <td className="p-1.5 border-r border-black font-mono">{code.asin}</td>
-                        <td className="p-1.5 font-mono">{code.fsn}</td>
+                        {!isColHidden(bCodes, 'rc.productDesc') && <td className="p-1.5 font-bold border-r border-black">{code.productDesc}</td>}
+                        {!isColHidden(bCodes, 'rc.ean') && <td className="p-1.5 border-r border-black font-mono">{code.ean}</td>}
+                        {!isColHidden(bCodes, 'rc.asin') && <td className="p-1.5 border-r border-black font-mono">{code.asin}</td>}
+                        {!isColHidden(bCodes, 'rc.fsn') && <td className="p-1.5 font-mono">{code.fsn}</td>}
                       </tr>
                     ))}
                   </tbody>
@@ -1365,8 +1366,8 @@ export const DocumentPDFView: React.FC<DocumentPDFViewProps> = ({
                     <table className="w-full text-left text-xs border-collapse">
                       <thead className="bg-slate-100 border-b border-black text-slate-900 font-bold">
                         <tr>
-                          <th className="p-2 border-r border-black w-1/3">Terms</th>
-                          <th className="p-2">Definitions</th>
+                          <th className="p-2 border-r border-black w-1/3">{colTitle(block, 'term', 'Terms')}</th>
+                          <th className="p-2">{colTitle(block, 'definition', 'Definitions')}</th>
                         </tr>
                       </thead>
                       <tbody className="divide-y divide-black">
@@ -1537,8 +1538,8 @@ export const DocumentPDFView: React.FC<DocumentPDFViewProps> = ({
                     <table className="w-full text-left text-xs border-collapse">
                       <thead className="bg-slate-100 border-b border-black text-slate-900 font-bold">
                         <tr>
-                          <th className="p-2 border-r border-black w-1/4">Function</th>
-                          <th className="p-2">Process</th>
+                          <th className="p-2 border-r border-black w-1/4">{colTitle(block, 'functionName', 'Function')}</th>
+                          <th className="p-2">{colTitle(block, 'process', 'Process')}</th>
                         </tr>
                       </thead>
                       <tbody className="divide-y divide-black">
@@ -1571,9 +1572,9 @@ export const DocumentPDFView: React.FC<DocumentPDFViewProps> = ({
                       <table className="w-full text-left border-collapse">
                         <thead className="bg-slate-100 border-b border-black text-slate-900 font-bold">
                           <tr>
-                            <th className="p-2 border-r border-black w-1/3">Case Remaining Battery</th>
-                            <th className="p-2 border-r border-black w-1/3">Charging State</th>
-                            <th className="p-2 w-1/3">Normal (Non-Charging) State</th>
+                            <th className="p-2 border-r border-black w-1/3">{colTitle(block, 'case.scenario', 'Case Remaining Battery')}</th>
+                            <th className="p-2 border-r border-black w-1/3">{colTitle(block, 'case.chargingState', 'Charging State')}</th>
+                            <th className="p-2 w-1/3">{colTitle(block, 'case.normalState', 'Normal (Non-Charging) State')}</th>
                           </tr>
                         </thead>
                         <tbody className="divide-y divide-black">
@@ -1593,8 +1594,8 @@ export const DocumentPDFView: React.FC<DocumentPDFViewProps> = ({
                       <table className="w-full text-left border-collapse">
                         <thead className="bg-slate-100 border-b border-black text-slate-900 font-bold">
                           <tr>
-                            <th className="p-2 border-r border-black w-1/3">Scenario</th>
-                            <th className="p-2">Charging / Operating State</th>
+                            <th className="p-2 border-r border-black w-1/3">{colTitle(block, 'ear.scenario', 'Scenario')}</th>
+                            <th className="p-2">{colTitle(block, 'ear.chargingState', 'Charging / Operating State')}</th>
                           </tr>
                         </thead>
                         <tbody className="divide-y divide-black">
@@ -1635,8 +1636,8 @@ export const DocumentPDFView: React.FC<DocumentPDFViewProps> = ({
                       <table className="w-full text-left border-collapse">
                         <thead className="bg-slate-100 border-b border-black text-slate-900 font-bold">
                           <tr>
-                            <th className="p-2 border-r border-black w-1/4">Statement</th>
-                            <th className="p-2">Information</th>
+                            <th className="p-2 border-r border-black w-1/4">{colTitle(block, 'statement', 'Statement')}</th>
+                            <th className="p-2">{colTitle(block, 'information', 'Information')}</th>
                           </tr>
                         </thead>
                         <tbody className="divide-y divide-black">
@@ -1843,19 +1844,19 @@ export const DocumentPDFView: React.FC<DocumentPDFViewProps> = ({
                     <table className="w-full text-left border-collapse">
                       <thead className="bg-slate-100 border-b border-black font-bold">
                         <tr>
-                          <th className="p-2 border-r border-black">Product Description</th>
-                          <th className="p-2 border-r border-black">EAN Code</th>
-                          <th className="p-2 border-r border-black">ASIN</th>
-                          <th className="p-2">FSN</th>
+                          {!isColHidden(block, 'rc.productDesc') && <th className="p-2 border-r border-black">{colTitle(block, 'rc.productDesc', 'Product Description')}</th>}
+                          {!isColHidden(block, 'rc.ean') && <th className="p-2 border-r border-black">{colTitle(block, 'rc.ean', 'EAN Code')}</th>}
+                          {!isColHidden(block, 'rc.asin') && <th className="p-2 border-r border-black">{colTitle(block, 'rc.asin', 'ASIN')}</th>}
+                          {!isColHidden(block, 'rc.fsn') && <th className="p-2">{colTitle(block, 'rc.fsn', 'FSN')}</th>}
                         </tr>
                       </thead>
                       <tbody className="divide-y divide-black">
                         {getReturnRows(document).map(code => (
                           <tr key={code.id}>
-                            <td className="p-2 font-bold border-r border-black">{code.productDesc}</td>
-                            <td className="p-2 border-r border-black font-mono">{code.ean}</td>
-                            <td className="p-2 border-r border-black font-mono">{code.asin}</td>
-                            <td className="p-2 font-mono">{code.fsn}</td>
+                            {!isColHidden(block, 'rc.productDesc') && <td className="p-2 font-bold border-r border-black">{code.productDesc}</td>}
+                            {!isColHidden(block, 'rc.ean') && <td className="p-2 border-r border-black font-mono">{code.ean}</td>}
+                            {!isColHidden(block, 'rc.asin') && <td className="p-2 border-r border-black font-mono">{code.asin}</td>}
+                            {!isColHidden(block, 'rc.fsn') && <td className="p-2 font-mono">{code.fsn}</td>}
                           </tr>
                         ))}
                       </tbody>

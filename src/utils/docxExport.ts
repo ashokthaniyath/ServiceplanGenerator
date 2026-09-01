@@ -20,6 +20,7 @@ import { ServicePlanDocument, ServicePlanBlock, AnnexureItem } from '../types';
 import { validateDocumentIsolation } from '../data/defaultPlans';
 import { resolveDocumentTokens } from './productTokens';
 import { getReturnRows } from './variants';
+import { colTitle, isColHidden } from './tableColumns';
 
 // Document body font — kept in sync with the on-screen preview (.pdf-document-root in index.css)
 const DOC_FONT = 'Open Sans';
@@ -454,25 +455,23 @@ export async function exportDocumentToDocx(rawDoc: ServicePlanDocument): Promise
     );
 
     if (bDefinitions.content.definitions && bDefinitions.content.definitions.length > 0) {
+      const defCols = [
+        { key: 'term', title: colTitle(bDefinitions, 'term', 'Terms'), w: 35, cell: (d: any) => createBodyCell(d.term, true, 35) },
+        { key: 'definition', title: colTitle(bDefinitions, 'definition', 'Definitions'), w: 65, cell: (d: any) => createBodyCell(d.definition, false, 65) },
+      ].filter(c => !isColHidden(bDefinitions, c.key));
       const rows = [
         new TableRow({
           tableHeader: true,
-          children: [
-            createHeaderCell('Terms', 35),
-            createHeaderCell('Definitions', 65),
-          ],
+          children: defCols.map(c => createHeaderCell(c.title, c.w)),
         }),
         ...bDefinitions.content.definitions.map(def =>
           new TableRow({
-            children: [
-              createBodyCell(def.term, true, 35),
-              createBodyCell(def.definition, false, 65),
-            ],
+            children: defCols.map(c => c.cell(def)),
           })
         ),
       ];
 
-      docChildren.push(buildTable([35, 65], rows));
+      docChildren.push(buildTable(defCols.map(c => c.w), rows));
       docChildren.push(new Paragraph({ spacing: { after: 160 }, children: [] }));
     }
   }
@@ -670,25 +669,23 @@ export async function exportDocumentToDocx(rawDoc: ServicePlanDocument): Promise
     );
 
     if (bFunctionalities.content.functionalities && bFunctionalities.content.functionalities.length > 0) {
+      const fnCols = [
+        { key: 'functionName', title: colTitle(bFunctionalities, 'functionName', 'Function'), w: 35, cell: (fn: any) => createBodyCell(fn.functionName, true, 35) },
+        { key: 'process', title: colTitle(bFunctionalities, 'process', 'Process'), w: 65, cell: (fn: any) => createBodyCell(fn.process, false, 65) },
+      ].filter(c => !isColHidden(bFunctionalities, c.key));
       const rows = [
         new TableRow({
           tableHeader: true,
-          children: [
-            createHeaderCell('Function', 35),
-            createHeaderCell('Process', 65),
-          ],
+          children: fnCols.map(c => createHeaderCell(c.title, c.w)),
         }),
         ...bFunctionalities.content.functionalities.map(fn =>
           new TableRow({
-            children: [
-              createBodyCell(fn.functionName, true, 35),
-              createBodyCell(fn.process, false, 65),
-            ],
+            children: fnCols.map(c => c.cell(fn)),
           })
         ),
       ];
 
-      docChildren.push(buildTable([35, 65], rows));
+      docChildren.push(buildTable(fnCols.map(c => c.w), rows));
       docChildren.push(new Paragraph({ spacing: { after: 140 }, children: [] }));
     }
   }
@@ -721,27 +718,24 @@ export async function exportDocumentToDocx(rawDoc: ServicePlanDocument): Promise
         })
       );
 
+      const caseCols = [
+        { key: 'case.scenario', title: colTitle(bLed, 'case.scenario', 'Case Remaining Battery'), w: 34, cell: (r: any) => createBodyCell(r.scenario, true, 34) },
+        { key: 'case.chargingState', title: colTitle(bLed, 'case.chargingState', 'Charging State'), w: 33, cell: (r: any) => createBodyCell(r.chargingState || '-', false, 33) },
+        { key: 'case.normalState', title: colTitle(bLed, 'case.normalState', 'Normal (Non-Charging) State'), w: 33, cell: (r: any) => createBodyCell(r.normalState || '-', false, 33) },
+      ].filter(c => !isColHidden(bLed, c.key));
       const rows = [
         new TableRow({
           tableHeader: true,
-          children: [
-            createHeaderCell('Case Remaining Battery', 34),
-            createHeaderCell('Charging State', 33),
-            createHeaderCell('Normal (Non-Charging) State', 33),
-          ],
+          children: caseCols.map(c => createHeaderCell(c.title, c.w)),
         }),
         ...bLed.content.caseLedIndications.map(row =>
           new TableRow({
-            children: [
-              createBodyCell(row.scenario, true, 34),
-              createBodyCell(row.chargingState || '-', false, 33),
-              createBodyCell(row.normalState || '-', false, 33),
-            ],
+            children: caseCols.map(c => c.cell(row)),
           })
         ),
       ];
 
-      docChildren.push(buildTable([34, 33, 33], rows));
+      docChildren.push(buildTable(caseCols.map(c => c.w), rows));
       docChildren.push(new Paragraph({ spacing: { after: 100 }, children: [] }));
     }
 
@@ -756,25 +750,23 @@ export async function exportDocumentToDocx(rawDoc: ServicePlanDocument): Promise
         })
       );
 
+      const earCols = [
+        { key: 'ear.scenario', title: colTitle(bLed, 'ear.scenario', 'Scenario'), w: 35, cell: (r: any) => createBodyCell(r.scenario, true, 35) },
+        { key: 'ear.chargingState', title: colTitle(bLed, 'ear.chargingState', 'Charging / Operating State'), w: 65, cell: (r: any) => createBodyCell(r.chargingState || '-', false, 65) },
+      ].filter(c => !isColHidden(bLed, c.key));
       const rows = [
         new TableRow({
           tableHeader: true,
-          children: [
-            createHeaderCell('Scenario', 35),
-            createHeaderCell('Charging / Operating State', 65),
-          ],
+          children: earCols.map(c => createHeaderCell(c.title, c.w)),
         }),
         ...bLed.content.earbudsLedIndications.map(row =>
           new TableRow({
-            children: [
-              createBodyCell(row.scenario, true, 35),
-              createBodyCell(row.chargingState || '-', false, 65),
-            ],
+            children: earCols.map(c => c.cell(row)),
           })
         ),
       ];
 
-      docChildren.push(buildTable([35, 65], rows));
+      docChildren.push(buildTable(earCols.map(c => c.w), rows));
       docChildren.push(new Paragraph({ spacing: { after: 100 }, children: [] }));
     }
 
@@ -823,25 +815,23 @@ export async function exportDocumentToDocx(rawDoc: ServicePlanDocument): Promise
     );
 
     if (bCharging.content.chargingGuidelines && bCharging.content.chargingGuidelines.length > 0) {
+      const cgCols = [
+        { key: 'statement', title: colTitle(bCharging, 'statement', 'Statement'), w: 35, cell: (g: any) => createBodyCell(g.statement, true, 35) },
+        { key: 'information', title: colTitle(bCharging, 'information', 'Information'), w: 65, cell: (g: any) => createBodyCell(g.information, false, 65) },
+      ].filter(c => !isColHidden(bCharging, c.key));
       const rows = [
         new TableRow({
           tableHeader: true,
-          children: [
-            createHeaderCell('Statement', 35),
-            createHeaderCell('Information', 65),
-          ],
+          children: cgCols.map(c => createHeaderCell(c.title, c.w)),
         }),
         ...bCharging.content.chargingGuidelines.map(cg =>
           new TableRow({
-            children: [
-              createBodyCell(cg.statement, true, 35),
-              createBodyCell(cg.information, false, 65),
-            ],
+            children: cgCols.map(c => c.cell(cg)),
           })
         ),
       ];
 
-      docChildren.push(buildTable([35, 65], rows));
+      docChildren.push(buildTable(cgCols.map(c => c.w), rows));
       docChildren.push(new Paragraph({ spacing: { after: 140 }, children: [] }));
     }
   }
@@ -1026,8 +1016,8 @@ export async function exportDocumentToDocx(rawDoc: ServicePlanDocument): Promise
         new TableRow({
           tableHeader: true,
           children: [
-            createHeaderCell('Function', 35),
-            createHeaderCell('Process', 65),
+            createHeaderCell(colTitle(bHearables, 'app.functionName', 'Function'), 35),
+            createHeaderCell(colTitle(bHearables, 'app.process', 'Process'), 65),
           ],
         }),
         ...bHearables.content.hearablesGuideSteps.map(step =>
@@ -1232,30 +1222,26 @@ export async function exportDocumentToDocx(rawDoc: ServicePlanDocument): Promise
       })
     );
 
+    const rcCols = [
+      { key: 'rc.productDesc', title: colTitle(bCodes, 'rc.productDesc', 'Product Description'), w: 40, cell: (rc: any) => createBodyCell(rc.productDesc, true, 40) },
+      // Empty codes stay blank (no '-' placeholder) to match the preview
+      { key: 'rc.ean', title: colTitle(bCodes, 'rc.ean', 'EAN Number'), w: 24, cell: (rc: any) => createBodyCell(rc.ean || ' ', false, 24) },
+      { key: 'rc.asin', title: colTitle(bCodes, 'rc.asin', 'ASIN'), w: 18, cell: (rc: any) => createBodyCell(rc.asin || ' ', false, 18) },
+      { key: 'rc.fsn', title: colTitle(bCodes, 'rc.fsn', 'FSN'), w: 18, cell: (rc: any) => createBodyCell(rc.fsn || ' ', false, 18) },
+    ].filter(c => !isColHidden(bCodes, c.key));
     const codeRows = [
       new TableRow({
         tableHeader: true,
-        children: [
-          createHeaderCell('Product Description', 40),
-          createHeaderCell('EAN Number', 24),
-          createHeaderCell('ASIN', 18),
-          createHeaderCell('FSN', 18),
-        ],
+        children: rcCols.map(c => createHeaderCell(c.title, c.w)),
       }),
       ...returnRows.map(rc =>
         new TableRow({
-          children: [
-            createBodyCell(rc.productDesc, true, 40),
-            // Empty codes stay blank (no '-' placeholder) to match the preview
-            createBodyCell(rc.ean || ' ', false, 24),
-            createBodyCell(rc.asin || ' ', false, 18),
-            createBodyCell(rc.fsn || ' ', false, 18),
-          ],
+          children: rcCols.map(c => c.cell(rc)),
         })
       ),
     ];
 
-    docChildren.push(buildTable([40, 24, 18, 18], codeRows));
+    docChildren.push(buildTable(rcCols.map(c => c.w), codeRows));
     docChildren.push(new Paragraph({ spacing: { after: 160 }, children: [] }));
   }
 

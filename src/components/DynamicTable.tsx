@@ -17,6 +17,8 @@ export interface DynamicTableColumn<T = any> {
   minWidth?: string;
   align?: 'left' | 'center' | 'right';
   render: (item: T, index: number) => React.ReactNode;
+  // Semantic key enabling inline header rename / column delete when table handlers exist
+  colKey?: string;
 }
 
 export interface DynamicTableProps<T = any> {
@@ -30,6 +32,8 @@ export interface DynamicTableProps<T = any> {
   onMoveRow?: (index: number, direction: 'up' | 'down') => void;
   onReorderRow?: (fromIndex: number, toIndex: number) => void;
   onDuplicateRow?: (index: number) => void;
+  onRenameColumn?: (colKey: string, newTitle: string) => void;
+  onDeleteColumn?: (colKey: string) => void;
   addButtonLabel?: string;
   emptyMessage?: string;
   headerRightContent?: React.ReactNode;
@@ -49,6 +53,8 @@ export function DynamicTable<T extends { id?: string } = any>({
   onMoveRow,
   onReorderRow,
   onDuplicateRow,
+  onRenameColumn,
+  onDeleteColumn,
   addButtonLabel = 'Add Row',
   emptyMessage = 'No records in this table yet. Click Add Row to insert a new entry.',
   headerRightContent,
@@ -75,6 +81,12 @@ export function DynamicTable<T extends { id?: string } = any>({
   const confirmDelete = (idx: number) => {
     if (window.confirm('Delete this row? This cannot be undone.')) {
       onDeleteRow(idx);
+    }
+  };
+
+  const confirmDeleteColumn = (colKey: string, title: string) => {
+    if (window.confirm(`Delete the "${title}" column and all its data? This cannot be undone.`)) {
+      onDeleteColumn?.(colKey);
     }
   };
 
@@ -127,7 +139,29 @@ export function DynamicTable<T extends { id?: string } = any>({
                     } ${col.width || ''}`}
                     style={{ minWidth: col.minWidth }}
                   >
-                    {col.header}
+                    {col.colKey && onRenameColumn && typeof col.header === 'string' ? (
+                      <span className="inline-flex items-center gap-1 w-full">
+                        <input
+                          type="text"
+                          value={col.header}
+                          onChange={e => onRenameColumn(col.colKey!, e.target.value)}
+                          className="w-full min-w-0 bg-transparent font-bold uppercase tracking-wider text-[10px] text-slate-700 border border-transparent hover:border-slate-300 focus:border-blue-500 focus:bg-white rounded px-1 py-0.5 outline-none transition-colors"
+                          title="Edit column title"
+                        />
+                        {onDeleteColumn && columns.filter(c => c.colKey).length > 1 && (
+                          <button
+                            type="button"
+                            onClick={() => confirmDeleteColumn(col.colKey!, String(col.header))}
+                            className="p-0.5 text-slate-300 hover:text-red-600 rounded shrink-0"
+                            title="Delete column"
+                          >
+                            <Trash2 className="w-3 h-3" />
+                          </button>
+                        )}
+                      </span>
+                    ) : (
+                      col.header
+                    )}
                   </th>
                 ))}
                 {showActionsColumn && (
