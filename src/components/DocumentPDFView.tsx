@@ -582,15 +582,24 @@ export const DocumentPDFView: React.FC<DocumentPDFViewProps> = ({
                             key={cv.id}
                             className={`p-3 text-center align-middle w-1/3 ${idx < arr.length - 1 ? 'border-r border-black' : ''}`}
                           >
-                            <div className="flex justify-center items-center h-28 max-w-36 mx-auto overflow-hidden" data-docx-capture={`variant-${cv.id}`}>
-                              <EarbudsCaseMockup
-                                name={cv.name}
-                                colorHex={cv.colorHex}
-                                secondaryHex={cv.secondaryHex || cv.colorHex}
-                                isSmartVariant={cv.isSmartVariant || false}
-                                showNameBelow={false}
-                                className="w-full h-full bg-transparent border-0 p-0 shadow-none hover:shadow-none"
-                              />
+                            <div className={`flex justify-center items-center ${cv.imageUrl ? '' : 'h-28'} max-w-36 mx-auto overflow-hidden`} data-docx-capture={`variant-${cv.id}`}>
+                              {cv.imageUrl ? (
+                                <img
+                                  src={cv.imageUrl}
+                                  alt={cv.name}
+                                  className="max-h-28 max-w-full object-contain border-0 outline-none mx-auto"
+                                  referrerPolicy="no-referrer"
+                                />
+                              ) : (
+                                <EarbudsCaseMockup
+                                  name={cv.name}
+                                  colorHex={cv.colorHex}
+                                  secondaryHex={cv.secondaryHex || cv.colorHex}
+                                  isSmartVariant={cv.isSmartVariant || false}
+                                  showNameBelow={false}
+                                  className="w-full h-full bg-transparent border-0 p-0 shadow-none hover:shadow-none"
+                                />
+                              )}
                             </div>
                           </td>
                         ))}
@@ -1488,7 +1497,7 @@ export const DocumentPDFView: React.FC<DocumentPDFViewProps> = ({
                                     onClick={(e) => handleElementClick(e, block.id, `variant-card-${variant.id}`, 'table-cell', `Variant Photo (${variant.name})`, variant.name, { itemId: variant.id, subKey: 'name' })}
                                     className={`p-3 text-center border-r border-black last:border-r-0 align-middle ${getClickableClass(block.id, `variant-card-${variant.id}`)}`}
                                   >
-                                    <div className="flex justify-center items-center h-28 max-w-36 mx-auto overflow-hidden" data-docx-capture={`variant-${variant.id}`}>
+                                    <div className={`flex justify-center items-center ${variant.imageUrl ? '' : 'h-28'} max-w-36 mx-auto overflow-hidden`} data-docx-capture={`variant-${variant.id}`}>
                                       {variant.imageUrl ? (
                                         <img
                                           src={variant.imageUrl}

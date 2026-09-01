@@ -200,7 +200,7 @@ async function captureDomNodeAsPng(selector: string): Promise<string | null> {
 }
 
 // Build a centered image paragraph (with optional caption) from any image source.
-async function buildImageParagraphs(src: string, caption?: string, maxWidth = 480): Promise<Paragraph[]> {
+async function buildImageParagraphs(src: string, caption?: string, maxWidth = 480, tightSpacing = false): Promise<Paragraph[]> {
   const decoded = await imageToPngBytes(src);
   if (!decoded) return [];
   const { bytes, width: natW, height: natH } = decoded;
@@ -212,7 +212,7 @@ async function buildImageParagraphs(src: string, caption?: string, maxWidth = 48
   const paras: Paragraph[] = [
     new Paragraph({
       alignment: AlignmentType.CENTER,
-      spacing: { before: 120, after: caption ? 40 : 140 },
+      spacing: tightSpacing ? { before: 0, after: 0 } : { before: 120, after: caption ? 40 : 140 },
       children: [
         new ImageRun({
           type: 'png',
@@ -619,9 +619,12 @@ export async function exportDocumentToDocx(rawDoc: ServicePlanDocument): Promise
       const nameCells: TableCell[] = [];
       for (const cv of chunk) {
         let paras: Paragraph[] = [];
-        const captured = await captureDomNodeAsPng(`[data-docx-capture="variant-${cv.id}"]`);
-        if (captured) paras = await buildImageParagraphs(captured, undefined, imgMaxPx);
-        if (paras.length === 0 && cv.imageUrl) paras = await buildImageParagraphs(cv.imageUrl, undefined, imgMaxPx);
+        // Prefer the uploaded image (full quality, no container whitespace) over the DOM capture
+        if (cv.imageUrl) paras = await buildImageParagraphs(cv.imageUrl, undefined, imgMaxPx, true);
+        if (paras.length === 0) {
+          const captured = await captureDomNodeAsPng(`[data-docx-capture="variant-${cv.id}"]`);
+          if (captured) paras = await buildImageParagraphs(captured, undefined, imgMaxPx, true);
+        }
         if (paras.length === 0) {
           paras = [
             new Paragraph({
