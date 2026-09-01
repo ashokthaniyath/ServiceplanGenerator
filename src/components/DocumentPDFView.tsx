@@ -1088,9 +1088,8 @@ export const DocumentPDFView: React.FC<DocumentPDFViewProps> = ({
                           <thead className="bg-slate-100 border-b border-black font-bold">
                             <tr>
                               <th className="p-1.5 border-r border-black w-12 text-center">S.No.</th>
-                              <th className="p-1.5 border-r border-black w-1/4">SOP Title</th>
-                              <th className="p-1.5 border-r border-black w-1/2">Testing Protocols & Procedures</th>
-                              <th className="p-1.5 w-1/4">Resource & Video Link</th>
+                              <th className="p-1.5 border-r border-black w-1/2">Link</th>
+                              <th className="p-1.5 w-1/2">Additional Link</th>
                             </tr>
                           </thead>
                           <tbody className="divide-y divide-black">
@@ -1099,18 +1098,7 @@ export const DocumentPDFView: React.FC<DocumentPDFViewProps> = ({
                                 <td className="p-1.5 text-center font-bold font-mono border-r border-black align-top bg-slate-50/50">
                                   {`${bAnnexure.sectionNumber || '8'}.${idx + 1}`}
                                 </td>
-                                <td className="p-1.5 font-bold text-slate-900 border-r border-black align-top">
-                                  <span>{item.sopTitle}</span>
-                                  {item.category && (
-                                    <span className="block mt-0.5 text-[9px] font-medium text-slate-500 font-sans">
-                                      [{item.category}]
-                                    </span>
-                                  )}
-                                </td>
-                                <td className="p-1.5 border-r border-black align-top whitespace-pre-line leading-relaxed text-slate-800 text-[11px]">
-                                  {item.protocols}
-                                </td>
-                                <td className="p-1.5 align-top break-all text-[11px]">
+                                <td className="p-1.5 border-r border-black align-top break-all text-[11px]">
                                   {item.resourceLink ? (
                                     <a
                                       href={item.resourceLink}
@@ -1122,6 +1110,20 @@ export const DocumentPDFView: React.FC<DocumentPDFViewProps> = ({
                                     </a>
                                   ) : (
                                     <span className="text-slate-400 italic">No link</span>
+                                  )}
+                                </td>
+                                <td className="p-1.5 align-top break-all text-[11px]">
+                                  {item.additionalLink ? (
+                                    <a
+                                      href={item.additionalLink}
+                                      target="_blank"
+                                      rel="noreferrer"
+                                      className="text-blue-700 hover:text-blue-900 underline font-mono"
+                                    >
+                                      {item.additionalLink}
+                                    </a>
+                                  ) : (
+                                    <span className="text-slate-400 italic">—</span>
                                   )}
                                 </td>
                               </tr>
@@ -1916,9 +1918,8 @@ export const DocumentPDFView: React.FC<DocumentPDFViewProps> = ({
                           <thead className="bg-slate-100 border-b border-black font-bold">
                             <tr>
                               <th className="p-2 border-r border-black w-14 text-center">S.No.</th>
-                              <th className="p-2 border-r border-black w-1/4">SOP Title / Document</th>
-                              <th className="p-2 border-r border-black w-1/2">Testing Protocols & Procedures</th>
-                              <th className="p-2 w-1/4">Resource & Video Link</th>
+                              <th className="p-2 border-r border-black w-1/2">Link</th>
+                              <th className="p-2 w-1/2">Additional Link</th>
                             </tr>
                           </thead>
                           <tbody className="divide-y divide-black">
@@ -1930,31 +1931,10 @@ export const DocumentPDFView: React.FC<DocumentPDFViewProps> = ({
                                 <td className="p-2 text-center font-bold font-mono border-r border-black align-top bg-slate-50/50">
                                   {block.sectionNumber ? `${block.sectionNumber}.${idx + 1}` : `${idx + 1}`}
                                 </td>
-                                <td className="p-2 font-bold text-slate-900 border-r border-black align-top">
-                                  <span
-                                    onClick={(e) => handleElementClick(e, block.id, `ann-title-${item.id}`, 'table-cell', `Annexure SOP: ${item.sopTitle}`, item.sopTitle, { itemId: item.id, subKey: 'sopTitle', isBold: true })}
-                                    className={getClickableClass(block.id, `ann-title-${item.id}`)}
-                                  >
-                                    {item.sopTitle}
-                                  </span>
-                                  {item.category && (
-                                    <span className="block mt-1 text-[10px] font-medium text-slate-500 font-sans">
-                                      [{item.category}]
-                                    </span>
-                                  )}
-                                </td>
-                                <td className="p-2 border-r border-black align-top whitespace-pre-line leading-relaxed text-slate-800">
-                                  <span
-                                    onClick={(e) => handleElementClick(e, block.id, `ann-proto-${item.id}`, 'paragraph', `SOP Protocols (${item.sopTitle})`, item.protocols, { itemId: item.id, subKey: 'protocols' })}
-                                    className={getClickableClass(block.id, `ann-proto-${item.id}`)}
-                                  >
-                                    {item.protocols}
-                                  </span>
-                                </td>
-                                <td className="p-2 align-top break-all">
+                                <td className="p-2 border-r border-black align-top break-all">
                                   {item.resourceLink ? (
                                     <span
-                                      onClick={(e) => handleElementClick(e, block.id, `ann-link-${item.id}`, 'paragraph', `Link (${item.sopTitle})`, item.resourceLink || '', { itemId: item.id, subKey: 'resourceLink' })}
+                                      onClick={(e) => handleElementClick(e, block.id, `ann-link-${item.id}`, 'paragraph', `Link (Row ${idx + 1})`, item.resourceLink || '', { itemId: item.id, subKey: 'resourceLink' })}
                                       className={getClickableClass(block.id, `ann-link-${item.id}`)}
                                     >
                                       <a
@@ -1969,6 +1949,20 @@ export const DocumentPDFView: React.FC<DocumentPDFViewProps> = ({
                                     </span>
                                   ) : (
                                     <span className="text-slate-400 italic">No link specified</span>
+                                  )}
+                                </td>
+                                <td className="p-2 align-top break-all">
+                                  {item.additionalLink ? (
+                                    <a
+                                      href={item.additionalLink}
+                                      target="_blank"
+                                      rel="noreferrer"
+                                      className="text-blue-700 hover:text-blue-900 underline font-mono text-[11px]"
+                                    >
+                                      {item.additionalLink}
+                                    </a>
+                                  ) : (
+                                    <span className="text-slate-400 italic">—</span>
                                   )}
                                 </td>
                               </tr>

@@ -2523,15 +2523,14 @@ export const BlockEditors: React.FC<BlockEditorProps> = ({
           <div className="space-y-6">
             <DynamicTable
               title="Annexure & QA Testing SOPs"
-              subtitle="Service flowcharts, technical testing protocols, tutorial videos, and warranty portal URLs"
+              subtitle="Service portal, tutorial video, and flowchart links"
               data={items}
-              addButtonLabel="Add SOP Protocol"
+              addButtonLabel="Add Link"
               onAddRow={() => {
                 const newRow: AnnexureItem = {
                   id: `ann-${Date.now()}`,
-                  category: 'QA Testing',
-                  sopTitle: 'New Testing SOP / Procedure',
-                  protocols: '● Step 1: Detail testing step and parameters\n● Step 2: Acceptance thresholds...',
+                  sopTitle: '',
+                  protocols: '',
                   resourceLink: 'https://service-portal.internal.com/',
                 };
                 updateAnnexure([...items, newRow]);
@@ -2552,9 +2551,8 @@ export const BlockEditors: React.FC<BlockEditorProps> = ({
               onRenameColumn={renameCol}
               onAddColumn={addExtraColumn}
               onDeleteColumn={(k) => hideCol(k,
-                k === 'ann.category' ? { annexureItems: items.map(i => ({ ...i, category: '' })) }
-                : k === 'ann.protocols' ? { annexureItems: items.map(i => ({ ...i, protocols: '' })) }
-                : { annexureItems: items.map(i => ({ ...i, resourceLink: '' })) })}
+                k === 'ann.resourceLink' ? { annexureItems: items.map(i => ({ ...i, resourceLink: '' })) }
+                : { annexureItems: items.map(i => ({ ...i, additionalLink: '' })) })}
               columns={[
                 {
                   key: 'index',
@@ -2568,78 +2566,18 @@ export const BlockEditors: React.FC<BlockEditorProps> = ({
                   ),
                 },
                 {
-                  key: 'category',
-                  colKey: 'ann.category',
-                  header: colT('ann.category', 'Category'),
-                  width: 'w-32 min-w-[130px]',
-                  render: (item, idx) => (
-                    <input
-                      type="text"
-                      value={item.category || ''}
-                      onChange={e => {
-                        const updated = [...items];
-                        updated[idx] = { ...updated[idx], category: e.target.value };
-                        updateAnnexure(updated);
-                      }}
-                      className="w-full px-2.5 py-1.5 text-xs font-bold text-slate-900 rounded-lg border border-slate-300 focus:outline-none bg-white"
-                      placeholder="e.g. QA Testing"
-                    />
-                  ),
-                },
-                {
-                  key: 'protocols',
-                  colKey: 'ann.protocols',
-                  header: colT('ann.protocols', 'Testing SOP Protocols & Flowcharts'),
-                  width: 'flex-1 min-w-[280px]',
-                  render: (item, idx) => (
-                    <div className="space-y-1.5">
-                      <AutoResizeTextarea
-                        minRows={4}
-                        value={item.protocols}
-                        onFocus={() => triggerSelect(`ann-proto-${item.id}`, 'paragraph', `SOP Protocols (${item.sopTitle})`, item.protocols, { itemId: item.id, subKey: 'protocols' })}
-                        onClick={() => triggerSelect(`ann-proto-${item.id}`, 'paragraph', `SOP Protocols (${item.sopTitle})`, item.protocols, { itemId: item.id, subKey: 'protocols' })}
-                        onChange={e => {
-                          const updated = [...items];
-                          updated[idx] = { ...updated[idx], protocols: e.target.value };
-                          updateAnnexure(updated);
-                        }}
-                        className={getFieldClass(`ann-proto-${item.id}`, item.id, 'protocols', "w-full p-2.5 text-xs text-slate-800 rounded-lg border border-slate-300 focus:outline-none leading-relaxed bg-white")}
-                        placeholder="Detailed testing protocols, inspection criteria, and repair workflows..."
-                      />
-                      {onOpenToneModal && (
-                        <div className="flex justify-end">
-                          <button
-                            type="button"
-                            onClick={() =>
-                              onOpenToneModal(item.protocols, newText => {
-                                const updated = [...items];
-                                updated[idx] = { ...updated[idx], protocols: newText };
-                                updateAnnexure(updated);
-                              })
-                            }
-                            className="text-[10px] font-semibold text-indigo-600 hover:text-indigo-800 flex items-center gap-1 px-1.5 py-0.5 rounded hover:bg-indigo-50 cursor-pointer"
-                            title="AI Polish instructions"
-                          >
-                            <Sparkles className="w-3 h-3" /> Polish with AI
-                          </button>
-                        </div>
-                      )}
-                    </div>
-                  ),
-                },
-                {
                   key: 'resourceLink',
                   colKey: 'ann.resourceLink',
-                  header: colT('ann.resourceLink', 'Service & Tutorial Video Links / Portal URL'),
-                  width: 'w-1/4 min-w-[200px]',
+                  header: colT('ann.resourceLink', 'Link'),
+                  width: 'w-2/5 min-w-[220px]',
                   render: (item, idx) => (
                     <div className="space-y-1.5">
                       <div className="relative">
                         <input
                           type="text"
                           value={item.resourceLink || ''}
-                          onFocus={() => triggerSelect(`ann-link-${item.id}`, 'paragraph', `Link (${item.sopTitle})`, item.resourceLink || '', { itemId: item.id, subKey: 'resourceLink' })}
-                          onClick={() => triggerSelect(`ann-link-${item.id}`, 'paragraph', `Link (${item.sopTitle})`, item.resourceLink || '', { itemId: item.id, subKey: 'resourceLink' })}
+                          onFocus={() => triggerSelect(`ann-link-${item.id}`, 'paragraph', `Link (${item.sopTitle || `Row ${idx + 1}`})`, item.resourceLink || '', { itemId: item.id, subKey: 'resourceLink' })}
+                          onClick={() => triggerSelect(`ann-link-${item.id}`, 'paragraph', `Link (${item.sopTitle || `Row ${idx + 1}`})`, item.resourceLink || '', { itemId: item.id, subKey: 'resourceLink' })}
                           onChange={e => {
                             const updated = [...items];
                             updated[idx] = { ...updated[idx], resourceLink: e.target.value };
@@ -2653,6 +2591,42 @@ export const BlockEditors: React.FC<BlockEditorProps> = ({
                       {item.resourceLink && item.resourceLink.startsWith('http') && (
                         <a
                           href={item.resourceLink}
+                          target="_blank"
+                          rel="noreferrer"
+                          className="inline-flex items-center gap-1 text-[10px] text-blue-600 hover:text-blue-800 font-semibold px-1 py-0.5"
+                          title="Open URL in new tab"
+                        >
+                          <ExternalLink className="w-3 h-3" />
+                          <span>Test Link</span>
+                        </a>
+                      )}
+                    </div>
+                  ),
+                },
+                {
+                  key: 'additionalLink',
+                  colKey: 'ann.additionalLink',
+                  header: colT('ann.additionalLink', 'Additional Link'),
+                  width: 'w-2/5 min-w-[220px]',
+                  render: (item, idx) => (
+                    <div className="space-y-1.5">
+                      <div className="relative">
+                        <input
+                          type="text"
+                          value={item.additionalLink || ''}
+                          onChange={e => {
+                            const updated = [...items];
+                            updated[idx] = { ...updated[idx], additionalLink: e.target.value };
+                            updateAnnexure(updated);
+                          }}
+                          className="w-full pl-7 pr-2 py-1.5 text-xs font-mono text-blue-950 rounded-lg border border-slate-300 focus:outline-none bg-white"
+                          placeholder="https:// (optional)"
+                        />
+                        <Link2 className="w-3.5 h-3.5 text-slate-400 absolute left-2 top-2.5" />
+                      </div>
+                      {item.additionalLink && item.additionalLink.startsWith('http') && (
+                        <a
+                          href={item.additionalLink}
                           target="_blank"
                           rel="noreferrer"
                           className="inline-flex items-center gap-1 text-[10px] text-blue-600 hover:text-blue-800 font-semibold px-1 py-0.5"

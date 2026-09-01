@@ -50,6 +50,7 @@ export interface AnnexureItem {
   sopTitle: string;
   protocols: string;
   resourceLink?: string;
+  additionalLink?: string;
   category?: 'QA Testing' | 'Tutorial Video' | 'Service Flowchart' | 'Warranty Portal' | 'General' | string;
 }
 

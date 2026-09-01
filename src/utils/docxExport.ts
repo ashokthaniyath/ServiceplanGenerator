@@ -1299,40 +1299,22 @@ export async function exportDocumentToDocx(rawDoc: ServicePlanDocument): Promise
         tableHeader: true,
         children: [
           createHeaderCell('S.No.', 10),
-          createHeaderCell('SOP Title / Document', 25),
-          createHeaderCell('Testing SOP Protocols & Procedures', 40),
-          createHeaderCell('Service & Tutorial Video Links', 25),
+          createHeaderCell('Link', 45),
+          createHeaderCell('Additional Link', 45),
         ],
       }),
-      ...annexureItems.map((item, idx) => {
-        const protocolParagraphs = item.protocols.split('\n').map(line => 
-          new Paragraph({
-            children: [
-              new TextRun({ text: line, size: 19, font: DOC_FONT, color: '000000' }),
-            ],
-            spacing: { after: 30 },
-          })
-        );
-
-        return new TableRow({
+      ...annexureItems.map((item, idx) =>
+        new TableRow({
           children: [
             createBodyCell(`${bAnnexure.sectionNumber || '8'}.${idx + 1}`, true, 10),
-            createBodyCell(item.category ? `${item.sopTitle}\n[${item.category}]` : item.sopTitle, true, 25),
-            new TableCell({
-              width: { size: pctToDxa(40), type: WidthType.DXA },
-              borders: CELL_BORDERS,
-              margins: { top: 90, bottom: 90, left: 140, right: 140 },
-              children: protocolParagraphs.length > 0 ? protocolParagraphs : [
-                new Paragraph({ children: [new TextRun({ text: item.protocols, size: 19, font: DOC_FONT, color: '000000' })] })
-              ],
-            }),
-            createBodyCell(item.resourceLink || 'N/A', false, 25),
+            createBodyCell(item.resourceLink || 'N/A', false, 45),
+            createBodyCell(item.additionalLink || ' ', false, 45),
           ],
-        });
-      }),
+        })
+      ),
     ];
 
-    docChildren.push(buildTable([10, 25, 40, 25], annexureRows));
+    docChildren.push(buildTable([10, 45, 45], annexureRows));
     docChildren.push(new Paragraph({ spacing: { after: 160 }, children: [] }));
   }
 
