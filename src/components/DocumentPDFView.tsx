@@ -1024,13 +1024,13 @@ export const DocumentPDFView: React.FC<DocumentPDFViewProps> = ({
                   className={`text-sm sm:text-base font-bold mb-2 ${getClickableClass(bCodes.id, 'title')}`}
                   style={{ color: getBlockAccent(bCodes.id) }}
                 >
-                  {bCodes.sectionNumber} {bCodes.title}
+                  {bCodes.title}
                 </h2>
                 <table className="w-full border border-black text-xs border-collapse">
                   <thead style={{ backgroundColor: `${getBlockAccent(bCodes.id)}15` }}>
                     <tr className="border-b border-black">
                       {!isColHidden(bCodes, 'rc.productDesc') && <th className="p-1.5 border-r border-black font-bold text-left">{colTitle(bCodes, 'rc.productDesc', 'Product Description')}</th>}
-                      {!isColHidden(bCodes, 'rc.ean') && <th className="p-1.5 border-r border-black font-bold text-left">{colTitle(bCodes, 'rc.ean', 'EAN Code')}</th>}
+                      {!isColHidden(bCodes, 'rc.ean') && <th className="p-1.5 border-r border-black font-bold text-left">{colTitle(bCodes, 'rc.ean', 'EAN Number')}</th>}
                       {!isColHidden(bCodes, 'rc.asin') && <th className="p-1.5 border-r border-black font-bold text-left">{colTitle(bCodes, 'rc.asin', 'ASIN')}</th>}
                       {!isColHidden(bCodes, 'rc.fsn') && <th className="p-1.5 font-bold text-left">{colTitle(bCodes, 'rc.fsn', 'FSN')}</th>}
                       {extraThs(bCodes)}
@@ -1059,7 +1059,7 @@ export const DocumentPDFView: React.FC<DocumentPDFViewProps> = ({
                   className={`text-sm sm:text-base font-bold mb-2 ${getClickableClass(bAnnexure.id, 'title')}`}
                   style={{ color: getBlockAccent(bAnnexure.id) }}
                 >
-                  {bAnnexure.sectionNumber} {bAnnexure.title}
+                  {bAnnexure.title}
                 </h2>
                 {(() => {
                   const items: AnnexureItem[] = (bAnnexure.content.annexureItems && bAnnexure.content.annexureItems.length > 0)
@@ -1081,41 +1081,36 @@ export const DocumentPDFView: React.FC<DocumentPDFViewProps> = ({
                         },
                       ];
 
+                  const annLabel = (idx: number, item: AnnexureItem) =>
+                    idx === 0 ? 'Testing Service Testing SOP & Videos Link:'
+                      : idx === 1 ? 'Tutorial Video Link on YouTube:'
+                      : `${item.sopTitle || `Additional Link ${idx + 1}`}:`;
+
                   return (
-                    <div className="space-y-2 text-xs">
-                      <div className="overflow-hidden border border-black rounded-xs">
-                        <table className="w-full text-left border-collapse">
-                          <thead className="bg-slate-100 border-b border-black font-bold">
-                            <tr>
-                              <th className="p-1.5 border-r border-black w-12 text-center">S.No.</th>
-                              <th className="p-1.5">Link</th>
-                            </tr>
-                          </thead>
-                          <tbody className="divide-y divide-black">
-                            {items.map((item, idx) => (
-                              <tr key={item.id || idx}>
-                                <td className="p-1.5 text-center font-bold font-mono border-r border-black align-top bg-slate-50/50">
-                                  {`${bAnnexure.sectionNumber || '8'}.${idx + 1}`}
-                                </td>
-                                <td className="p-1.5 align-top break-all text-[11px]">
-                                  {item.resourceLink ? (
-                                    <a
-                                      href={item.resourceLink}
-                                      target="_blank"
-                                      rel="noreferrer"
-                                      className="text-blue-700 hover:text-blue-900 underline font-mono"
-                                    >
-                                      {item.resourceLink}
-                                    </a>
-                                  ) : (
-                                    <span className="text-slate-400 italic">No link</span>
-                                  )}
-                                </td>
-                              </tr>
-                            ))}
-                          </tbody>
-                        </table>
-                      </div>
+                    <div className="space-y-3 text-xs">
+                      {items.map((item, idx) => (
+                        <div key={item.id || idx}>
+                          <h3 className="text-xs sm:text-sm font-bold text-slate-900 mb-1">{annLabel(idx, item)}</h3>
+                          {item.resourceLink ? (
+                            <span
+                              onClick={(e) => handleElementClick(e, bAnnexure.id, `ann-link-${item.id}`, 'paragraph', `Link (Row ${idx + 1})`, item.resourceLink || '', { itemId: item.id, subKey: 'resourceLink' })}
+                              className={getClickableClass(bAnnexure.id, `ann-link-${item.id}`)}
+                            >
+                              <a
+                                href={item.resourceLink}
+                                target="_blank"
+                                rel="noreferrer"
+                                onClick={(e) => e.stopPropagation()}
+                                className="text-blue-700 hover:text-blue-900 underline font-mono text-[11px] break-all"
+                              >
+                                {item.resourceLink}
+                              </a>
+                            </span>
+                          ) : (
+                            <span className="text-slate-400 italic">No link</span>
+                          )}
+                        </div>
+                      ))}
                     </div>
                   );
                 })()}
@@ -1856,7 +1851,7 @@ export const DocumentPDFView: React.FC<DocumentPDFViewProps> = ({
                       <thead className="bg-slate-100 border-b border-black font-bold">
                         <tr>
                           {!isColHidden(block, 'rc.productDesc') && <th className="p-2 border-r border-black">{colTitle(block, 'rc.productDesc', 'Product Description')}</th>}
-                          {!isColHidden(block, 'rc.ean') && <th className="p-2 border-r border-black">{colTitle(block, 'rc.ean', 'EAN Code')}</th>}
+                          {!isColHidden(block, 'rc.ean') && <th className="p-2 border-r border-black">{colTitle(block, 'rc.ean', 'EAN Number')}</th>}
                           {!isColHidden(block, 'rc.asin') && <th className="p-2 border-r border-black">{colTitle(block, 'rc.asin', 'ASIN')}</th>}
                           {!isColHidden(block, 'rc.fsn') && <th className="p-2">{colTitle(block, 'rc.fsn', 'FSN')}</th>}
                         </tr>
@@ -1896,50 +1891,36 @@ export const DocumentPDFView: React.FC<DocumentPDFViewProps> = ({
                         },
                       ];
 
+                  const annLabel = (idx: number, item: AnnexureItem) =>
+                    idx === 0 ? 'Testing Service Testing SOP & Videos Link:'
+                      : idx === 1 ? 'Tutorial Video Link on YouTube:'
+                      : `${item.sopTitle || `Additional Link ${idx + 1}`}:`;
+
                   return (
                     <div className="space-y-4 text-xs">
-                      <div className="overflow-hidden border border-black rounded-xs">
-                        <table className="w-full text-left border-collapse">
-                          <thead className="bg-slate-100 border-b border-black font-bold">
-                            <tr>
-                              <th className="p-2 border-r border-black w-14 text-center">S.No.</th>
-                              <th className="p-2">Link</th>
-                            </tr>
-                          </thead>
-                          <tbody className="divide-y divide-black">
-                            {items.map((item, idx) => (
-                              <tr 
-                                key={item.id || idx}
-                                className="transition-colors hover:bg-blue-50/10"
+                      {items.map((item, idx) => (
+                        <div key={item.id || idx}>
+                          <h3 className="text-sm font-bold text-slate-900 mb-1">{annLabel(idx, item)}</h3>
+                          {item.resourceLink ? (
+                            <span
+                              onClick={(e) => handleElementClick(e, block.id, `ann-link-${item.id}`, 'paragraph', `Link (Row ${idx + 1})`, item.resourceLink || '', { itemId: item.id, subKey: 'resourceLink' })}
+                              className={getClickableClass(block.id, `ann-link-${item.id}`)}
+                            >
+                              <a
+                                href={item.resourceLink}
+                                target="_blank"
+                                rel="noreferrer"
+                                onClick={(e) => e.stopPropagation()}
+                                className="text-blue-700 hover:text-blue-900 underline font-mono text-[11px] break-all"
                               >
-                                <td className="p-2 text-center font-bold font-mono border-r border-black align-top bg-slate-50/50">
-                                  {block.sectionNumber ? `${block.sectionNumber}.${idx + 1}` : `${idx + 1}`}
-                                </td>
-                                <td className="p-2 align-top break-all">
-                                  {item.resourceLink ? (
-                                    <span
-                                      onClick={(e) => handleElementClick(e, block.id, `ann-link-${item.id}`, 'paragraph', `Link (Row ${idx + 1})`, item.resourceLink || '', { itemId: item.id, subKey: 'resourceLink' })}
-                                      className={getClickableClass(block.id, `ann-link-${item.id}`)}
-                                    >
-                                      <a
-                                        href={item.resourceLink}
-                                        target="_blank"
-                                        rel="noreferrer"
-                                        onClick={(e) => e.stopPropagation()}
-                                        className="text-blue-700 hover:text-blue-900 underline font-mono text-[11px] inline-flex items-center gap-1"
-                                      >
-                                        <span>{item.resourceLink}</span>
-                                      </a>
-                                    </span>
-                                  ) : (
-                                    <span className="text-slate-400 italic">No link specified</span>
-                                  )}
-                                </td>
-                              </tr>
-                            ))}
-                          </tbody>
-                        </table>
-                      </div>
+                                {item.resourceLink}
+                              </a>
+                            </span>
+                          ) : (
+                            <span className="text-slate-400 italic">No link specified</span>
+                          )}
+                        </div>
+                      ))}
                     </div>
                   );
                 })()}

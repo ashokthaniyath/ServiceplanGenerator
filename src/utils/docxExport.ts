@@ -1224,7 +1224,7 @@ export async function exportDocumentToDocx(rawDoc: ServicePlanDocument): Promise
         spacing: { before: 200, after: 100 },
         children: [
           new TextRun({
-            text: `${bCodes.sectionNumber || '7'} ${bCodes.title}`,
+            text: bCodes.title,
             bold: true,
             size: 24,
             color: corporateBlue,
@@ -1265,7 +1265,7 @@ export async function exportDocumentToDocx(rawDoc: ServicePlanDocument): Promise
         spacing: { before: 200, after: 100 },
         children: [
           new TextRun({
-            text: `${bAnnexure.sectionNumber || '8'} ${bAnnexure.title}`,
+            text: bAnnexure.title,
             bold: true,
             size: 24,
             color: corporateBlue,
@@ -1294,25 +1294,25 @@ export async function exportDocumentToDocx(rawDoc: ServicePlanDocument): Promise
           },
         ];
 
-    const annexureRows = [
-      new TableRow({
-        tableHeader: true,
-        children: [
-          createHeaderCell('S.No.', 10),
-          createHeaderCell('Link', 90),
-        ],
-      }),
-      ...annexureItems.map((item, idx) =>
-        new TableRow({
-          children: [
-            createBodyCell(`${bAnnexure.sectionNumber || '8'}.${idx + 1}`, true, 10),
-            createBodyCell(item.resourceLink || 'N/A', false, 90),
-          ],
+    annexureItems.forEach((item, idx) => {
+      const label = idx === 0
+        ? 'Testing Service Testing SOP & Videos Link:'
+        : idx === 1
+          ? 'Tutorial Video Link on YouTube:'
+          : `${item.sopTitle || `Additional Link ${idx + 1}`}:`;
+      docChildren.push(
+        new Paragraph({
+          spacing: { before: 120, after: 40 },
+          children: [new TextRun({ text: label, bold: true, size: 22, font: DOC_FONT, color: '000000' })],
         })
-      ),
-    ];
-
-    docChildren.push(buildTable([10, 90], annexureRows));
+      );
+      docChildren.push(
+        new Paragraph({
+          spacing: { after: 80 },
+          children: [new TextRun({ text: item.resourceLink || ' ', size: 20, font: DOC_FONT, color: '0563C1', underline: {} })],
+        })
+      );
+    });
     docChildren.push(new Paragraph({ spacing: { after: 160 }, children: [] }));
   }
 

@@ -11,7 +11,14 @@ const SAVED_DOC_KEY = 'spg-saved-document';
 function loadSavedDocument(): ServicePlanDocument | null {
   try {
     const raw = localStorage.getItem(SAVED_DOC_KEY);
-    return raw ? (JSON.parse(raw) as ServicePlanDocument) : null;
+    const doc = raw ? (JSON.parse(raw) as ServicePlanDocument) : null;
+    if (doc) {
+      // Migrate legacy Section 8 title to the current "Annexure" subheading
+      doc.blocks = doc.blocks.map(b =>
+        b.type === 'annexure' && b.title === 'Annexure & QA Testing SOPs' ? { ...b, title: 'Annexure' } : b
+      );
+    }
+    return doc;
   } catch {
     return null;
   }

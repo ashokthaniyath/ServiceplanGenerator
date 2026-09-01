@@ -2522,8 +2522,8 @@ export const BlockEditors: React.FC<BlockEditorProps> = ({
         return (
           <div className="space-y-6">
             <DynamicTable
-              title="Annexure & QA Testing SOPs"
-              subtitle="Service portal, tutorial video, and flowchart links"
+              title="Annexure"
+              subtitle="Testing SOP & videos link and YouTube tutorial video link"
               data={items}
               addButtonLabel="Add Link"
               onAddRow={() => {
@@ -2554,12 +2554,11 @@ export const BlockEditors: React.FC<BlockEditorProps> = ({
               columns={[
                 {
                   key: 'index',
-                  header: '#',
-                  width: 'w-12',
-                  align: 'center' as const,
-                  render: (_, idx) => (
-                    <span className="inline-flex items-center justify-center w-6 h-6 rounded-full bg-blue-100 text-blue-800 text-xs font-bold font-mono">
-                      {idx + 1}
+                  header: 'Item',
+                  width: 'w-64',
+                  render: (item, idx) => (
+                    <span className="text-xs font-bold text-slate-800">
+                      {idx === 0 ? 'Testing Service Testing SOP & Videos Link' : idx === 1 ? 'Tutorial Video Link on YouTube' : (item.sopTitle || `Additional Link ${idx + 1}`)}
                     </span>
                   ),
                 },
