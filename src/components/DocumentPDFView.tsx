@@ -1513,10 +1513,6 @@ export const DocumentPDFView: React.FC<DocumentPDFViewProps> = ({
                                     className={`p-2 text-center font-bold text-slate-900 border-r border-black last:border-r-0 ${getClickableClass(block.id, `variant-${variant.id}`)}`}
                                   >
                                     <div className="flex items-center justify-center gap-1.5">
-                                      <span
-                                        className="w-3 h-3 rounded-full border border-slate-400 shrink-0"
-                                        style={{ backgroundColor: variant.colorHex }}
-                                      />
                                       <span className="text-xs">{variant.name}</span>
                                       {variant.isSmartVariant && (
                                         <span className="px-1 py-0.2 text-[8px] font-bold bg-amber-100 text-amber-800 border border-amber-300 rounded">

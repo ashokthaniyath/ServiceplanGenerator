@@ -2180,7 +2180,6 @@ export const BlockEditors: React.FC<BlockEditorProps> = ({
                     header: 'Product Description',
                     render: (v) => (
                       <div className="flex items-center gap-2 px-2.5 py-1.5">
-                        <span className="w-3.5 h-3.5 rounded-full border border-slate-300 shrink-0" style={{ backgroundColor: v.colorHex }} />
                         <span className="font-semibold text-slate-800 text-xs">{productName ? `${productName} – ${v.name}` : v.name}</span>
                       </div>
                     ),

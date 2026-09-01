@@ -234,22 +234,10 @@ export const Screen1Setup: React.FC<Screen1SetupProps> = ({
               <div key={v.id} className="p-3 rounded-lg border border-gray-200 bg-gray-50/50 space-y-2">
                 <div className="flex items-center justify-between">
                   <span className="text-[11px] font-bold text-gray-700 uppercase tracking-wider">Variant {idx + 1}</span>
-                  <span
-                    className="w-5 h-5 rounded-full border border-gray-300 shadow-2xs shrink-0"
-                    style={{ backgroundColor: v.colorHex }}
-                    title={`${v.name} (${v.colorHex})`}
-                  />
                 </div>
                 <div>
                   <label className="block text-[10px] font-bold text-gray-500 uppercase mb-1">Color Variant</label>
                   <div className="flex items-center gap-1.5">
-                    <input
-                      type="color"
-                      value={v.colorHex}
-                      onChange={e => setDocument(prev => updateVariantField(prev, v.id, { colorHex: e.target.value }))}
-                      className="w-7 h-7 p-0.5 rounded border border-gray-200 bg-white cursor-pointer shrink-0"
-                      title="Variant colour"
-                    />
                     <input
                       type="text"
                       value={v.name}

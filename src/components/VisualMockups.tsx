@@ -139,19 +139,6 @@ export const EarbudsCaseMockup: React.FC<EarbudsCaseMockupProps> = ({
       {showNameBelow && (
         <div className="mt-2 text-center w-full">
           <p className="text-xs font-semibold text-slate-800 truncate">{name}</p>
-          <div className="flex items-center justify-center gap-1.5 mt-1">
-            <span
-              className="w-3.5 h-3.5 rounded-full border border-slate-300 shadow-xs"
-              style={{ backgroundColor: colorHex }}
-              title={name}
-            />
-            {secondaryHex && (
-              <span
-                className="w-3.5 h-3.5 rounded-full border border-slate-300 shadow-xs -ml-1.5"
-                style={{ backgroundColor: secondaryHex }}
-              />
-            )}
-          </div>
         </div>
       )}
     </div>
