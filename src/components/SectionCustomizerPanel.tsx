@@ -375,17 +375,6 @@ export const SectionCustomizerPanel: React.FC<SectionCustomizerPanelProps> = ({
     return selectedElement.label.toUpperCase();
   };
 
-  // Layout format handler
-  const handleSetLayoutStyle = (layout: 'table' | 'cards' | 'compact' | 'split' | 'grid') => {
-    onChange({
-      ...block,
-      customization: {
-        ...block.customization,
-        layoutStyle: layout,
-      },
-    });
-  };
-
   // Table manipulation helpers for active custom table element
   const currentTableColumns = selectedElement?.tableColumns || activeCustomElement?.tableColumns || ['Parameter', 'Specification Standard', 'Acceptance Value'];
   const currentTableRows = selectedElement?.tableRows || activeCustomElement?.tableRows || [
@@ -608,103 +597,6 @@ export const SectionCustomizerPanel: React.FC<SectionCustomizerPanelProps> = ({
           placeholder="Product Identification"
           className="w-full px-3 py-2 text-xs font-semibold rounded-lg border border-gray-200 bg-white text-gray-900 shadow-2xs focus:border-black focus:ring-1 focus:ring-black outline-none transition-all"
         />
-      </div>
-
-      {/* 1.5 LAYOUT STYLE / FORMAT SELECTOR (TABLE FORMAT FOCUS) */}
-      <div className="bg-white rounded-xl border border-gray-200/90 p-3 shadow-2xs space-y-2.5">
-        <div className="flex items-center justify-between">
-          <label className="text-[11px] font-bold text-gray-700 uppercase tracking-wider flex items-center gap-1.5">
-            <TableIcon className="w-3.5 h-3.5 text-blue-600" />
-            <span>Layout & Format</span>
-          </label>
-          <span className="text-[10px] font-mono font-bold px-1.5 py-0.5 rounded bg-blue-50 text-blue-700 border border-blue-200 uppercase">
-            {block.customization.layoutStyle || 'table'} Format
-          </span>
-        </div>
-
-        {/* Layout Style Switcher Buttons */}
-        <div className="grid grid-cols-3 gap-1.5">
-          <button
-            type="button"
-            onClick={() => handleSetLayoutStyle('table')}
-            className={`py-1.5 px-2 rounded-lg border text-[11px] font-bold flex items-center justify-center gap-1.5 transition-all ${
-              (block.customization.layoutStyle || 'table') === 'table'
-                ? 'bg-black text-white border-black shadow-xs'
-                : 'bg-gray-50 hover:bg-gray-100 text-gray-700 border-gray-200'
-            }`}
-            title="Technical Standard Table Format (Crisp borders, aligned columns)"
-          >
-            <TableIcon className="w-3 h-3 shrink-0" />
-            <span>Table</span>
-          </button>
-
-          <button
-            type="button"
-            onClick={() => handleSetLayoutStyle('cards')}
-            className={`py-1.5 px-2 rounded-lg border text-[11px] font-bold flex items-center justify-center gap-1.5 transition-all ${
-              block.customization.layoutStyle === 'cards'
-                ? 'bg-black text-white border-black shadow-xs'
-                : 'bg-gray-50 hover:bg-gray-100 text-gray-700 border-gray-200'
-            }`}
-            title="Card Grid Layout"
-          >
-            <LayoutGrid className="w-3 h-3 shrink-0" />
-            <span>Cards</span>
-          </button>
-
-          <button
-            type="button"
-            onClick={() => handleSetLayoutStyle('compact')}
-            className={`py-1.5 px-2 rounded-lg border text-[11px] font-bold flex items-center justify-center gap-1.5 transition-all ${
-              block.customization.layoutStyle === 'compact'
-                ? 'bg-black text-white border-black shadow-xs'
-                : 'bg-gray-50 hover:bg-gray-100 text-gray-700 border-gray-200'
-            }`}
-            title="Compact High-Density List"
-          >
-            <Rows className="w-3 h-3 shrink-0" />
-            <span>Compact</span>
-          </button>
-        </div>
-
-        {/* Table Formatting Quick Toggles */}
-        <div className="grid grid-cols-2 gap-2 pt-1 border-t border-gray-100">
-          <label className="flex items-center gap-1.5 cursor-pointer text-[11px] font-medium text-gray-700">
-            <input
-              type="checkbox"
-              checked={block.customization.zebraStriping !== false}
-              onChange={e =>
-                onChange({
-                  ...block,
-                  customization: {
-                    ...block.customization,
-                    zebraStriping: e.target.checked,
-                  },
-                })
-              }
-              className="rounded text-black focus:ring-black accent-black"
-            />
-            <span>Zebra Striping</span>
-          </label>
-
-          <label className="flex items-center gap-1.5 cursor-pointer text-[11px] font-medium text-gray-700">
-            <input
-              type="checkbox"
-              checked={block.customization.tableBorder !== false}
-              onChange={e =>
-                onChange({
-                  ...block,
-                  customization: {
-                    ...block.customization,
-                    tableBorder: e.target.checked,
-                  },
-                })
-              }
-              className="rounded text-black focus:ring-black accent-black"
-            />
-            <span>Table Borders</span>
-          </label>
-        </div>
       </div>
 
       {/* 2. MIDDLE SECTION: ADD CONTENT ELEMENT BUTTONS */}
