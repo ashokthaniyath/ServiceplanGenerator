@@ -218,16 +218,22 @@ export const Screen1Setup: React.FC<Screen1SetupProps> = ({
                 value={variants.length}
                 onChange={e => handleVariantCountChange(parseInt(e.target.value, 10))}
                 className="px-3 py-1.5 text-xs font-bold rounded-md border border-gray-200 bg-white text-gray-900 focus:border-blue-600 focus:ring-1 focus:ring-blue-600 outline-none cursor-pointer"
-                title="Number of product variants (1–10)"
+                title="Number of product variants (0–10)"
               >
-                {Array.from({ length: MAX_VARIANTS }, (_, i) => i + 1).map(n => (
+                {Array.from({ length: MAX_VARIANTS + 1 }, (_, i) => i).map(n => (
                   <option key={n} value={n}>{n}</option>
                 ))}
               </select>
             </div>
           </div>
 
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
+          {variants.length === 0 ? (
+            <div className="p-6 rounded-lg border border-dashed border-gray-300 bg-gray-50/70 text-center space-y-1.5">
+              <p className="text-xs font-semibold text-gray-700">No product variants configured (0 selected)</p>
+              <p className="text-[11px] text-gray-500">Select a count from 1 to {MAX_VARIANTS} in the dropdown above to add colour variants and EAN codes.</p>
+            </div>
+          ) : (
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
             {variants.map((v, idx) => (
               <div key={v.id} className="p-3 rounded-lg border border-gray-200 bg-gray-50/50 space-y-2">
                 <div className="flex items-center justify-between">
@@ -258,6 +264,7 @@ export const Screen1Setup: React.FC<Screen1SetupProps> = ({
               </div>
             ))}
           </div>
+          )}
         </div>
 
         {/* Card 2: Combined "Select Core Service Plan Sections" + "Section Preview" in 1 Card */}

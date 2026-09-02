@@ -56,11 +56,11 @@ export function getReturnRows(doc: ServicePlanDocument): ReturnRow[] {
   return findReturnCodesBlock(doc)?.content.returnCodes || [];
 }
 
-// Returns a new document with the variant list resized to `count` (1–10).
+// Returns a new document with the variant list resized to `count` (0–10).
 // Increasing appends palette-preset variants; decreasing slices from the end.
 // Callers must confirm with the user before decreasing.
 export function setVariantCount(doc: ServicePlanDocument, count: number): ServicePlanDocument {
-  const clamped = Math.max(1, Math.min(MAX_VARIANTS, Math.floor(count)));
+  const clamped = Math.max(0, Math.min(MAX_VARIANTS, Math.floor(count)));
   const current = getVariants(doc);
   let next: ColourVariant[];
   if (clamped === current.length) return doc;

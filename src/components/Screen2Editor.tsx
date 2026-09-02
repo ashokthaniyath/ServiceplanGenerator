@@ -69,21 +69,6 @@ export const Screen2Editor: React.FC<Screen2EditorProps> = ({
   const [zoomLevel, setZoomLevel] = useState<number>(1);
   const [syncSuccessMsg, setSyncSuccessMsg] = useState<string | null>(null);
 
-  const ACCENT_PALETTE_PRESETS = [
-    { hex: '#1e40af', label: 'boAt Royal Navy' },
-    { hex: '#0f172a', label: 'Obsidian Slate' },
-    { hex: '#0284c7', label: 'Azure Sky' },
-    { hex: '#0f766e', label: 'Ocean Teal' },
-    { hex: '#059669', label: 'Emerald Forest' },
-    { hex: '#dc2626', label: 'Crimson Red' },
-    { hex: '#ea580c', label: 'Sunset Amber' },
-    { hex: '#7c3aed', label: 'Royal Purple' },
-    { hex: '#e11d48', label: 'Vivid Rose' },
-    { hex: '#4b5563', label: 'Graphite Slate' },
-    { hex: '#111827', label: 'Pure Onyx' },
-    { hex: '#4338ca', label: 'Deep Indigo' },
-  ];
-
   // --- Flexible Panel Layout State (Figma Style) ---
   const [leftPanelWidth, setLeftPanelWidth] = useState<number>(290);
   const [isLeftCollapsed, setIsLeftCollapsed] = useState<boolean>(false);
@@ -688,31 +673,6 @@ export const Screen2Editor: React.FC<Screen2EditorProps> = ({
   // <$productname$> so future renames keep propagating.
   const handleUpdateBlockFromEditor = (updatedBlock: ServicePlanBlock) => {
     handleUpdateBlock(unresolveBlockTokens(updatedBlock, document));
-  };
-
-  // Apply accent color to single section or globally across all sections
-  const handleApplyAccentColor = (colorHex: string, applyToAll: boolean = false) => {
-    setDocument(prev => ({
-      ...prev,
-      themeColor: applyToAll ? colorHex : prev.themeColor,
-      blocks: prev.blocks.map(b => {
-        if (applyToAll || (activeBlock && b.id === activeBlock.id)) {
-          return {
-            ...b,
-            customization: {
-              ...b.customization,
-              accentColor: colorHex,
-            },
-          };
-        }
-        return b;
-      }),
-    }));
-
-    if (applyToAll) {
-      setSyncSuccessMsg(`Accent applied to all ${document.blocks.length} sections & doc theme!`);
-      setTimeout(() => setSyncSuccessMsg(null), 3500);
-    }
   };
 
   // Reordering helpers

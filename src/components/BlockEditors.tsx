@@ -1100,8 +1100,14 @@ export const BlockEditors: React.FC<BlockEditorProps> = ({
             </div>
 
             {/* Responsive Auto-Fitting Grid so cards never compress below comfortable width */}
-            <div className="grid grid-cols-[repeat(auto-fill,minmax(230px,1fr))] gap-4">
-              {variants.map((variant, idx) => {
+            {variants.length === 0 ? (
+              <div className="p-8 rounded-xl border border-dashed border-slate-300 bg-slate-50 text-center space-y-2">
+                <p className="text-xs font-semibold text-slate-700">No product colour variants defined</p>
+                <p className="text-[11px] text-slate-500">Click &ldquo;Add Colourway&rdquo; above to add your first product variant.</p>
+              </div>
+            ) : (
+              <div className="grid grid-cols-[repeat(auto-fill,minmax(230px,1fr))] gap-4">
+                {variants.map((variant, idx) => {
                 const isItemActive = isSelected(`variant-${variant.id}`, variant.id);
 
                 return (
@@ -1279,6 +1285,7 @@ export const BlockEditors: React.FC<BlockEditorProps> = ({
                 );
               })}
             </div>
+            )}
           </div>
         );
       }
